@@ -2,19 +2,73 @@ from rest_framework import generics, serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
+from rest_framework.permissions import IsAdminUser
 from django.core.cache import cache
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
+from rest_framework_api_key.permissions import HasAPIKey
+from rest_framework_api_key.models import APIKey
+
+# --- Postgres Search Imports ---
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.db.models import TextField
+from django.db.models.functions import Cast
+from django.contrib.auth import get_user_model
+
 from .models import Job
-from .serializers import JobSerializer
+from .serializers import JobSerializer, JobListResponseSerializer
 from .tasks import run_scrapers
-# --- UPDATED IMPORTS HERE ---
-from .throttles import FreeTierThrottle, ProTierThrottle, BusinessTierThrottle
+from .throttles import FreeTierThrottle, ProTierThrottle, BusinessTierThrottle, ScrapeTriggerThrottle
 from .filters import JobFilter
+from core.models import APIRequestLog
+
+User = get_user_model()
 
 
 # --- 1. The Job List API ---
+def resolve_request_identity(request):
+    user = request.user if request.user.is_authenticated else None
+    api_key_prefix = ""
+    plan_type = getattr(getattr(user, "subscription", None), "plan_type", "free")
+
+    auth_header = request.META.get("HTTP_AUTHORIZATION")
+    if auth_header and auth_header.startswith("Api-Key "):
+        try:
+            key_value = auth_header.split()[1]
+            api_key = APIKey.objects.get_from_key(key_value)
+            if api_key:
+                api_key_prefix = api_key.prefix
+                if not user:
+                    user = User.objects.filter(email=api_key.name).first()
+                plan_type = getattr(getattr(user, "subscription", None), "plan_type", "free")
+        except Exception:
+            pass
+
+    return user, api_key_prefix, plan_type
+
+
+def log_api_request(request, response):
+    # We only log structured API traffic; HTML browsing is excluded.
+    if request.accepted_renderer and request.accepted_renderer.format == "html":
+        return
+
+    if not request.path.startswith("/api/"):
+        return
+
+    user, api_key_prefix, plan_type = resolve_request_identity(request)
+    if not user and not api_key_prefix:
+        return
+
+    APIRequestLog.objects.create(
+        user=user,
+        method=request.method,
+        endpoint=request.path,
+        status_code=response.status_code,
+        plan_type=plan_type,
+        api_key_prefix=api_key_prefix,
+    )
+
+
 class JobListAPI(generics.ListAPIView):
     serializer_class = JobSerializer
     # Filter Backend settings
@@ -24,8 +78,7 @@ class JobListAPI(generics.ListAPIView):
     # Allow both JSON (for API) and HTML (for Browser)
     renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
 
-    # --- UPDATED THROTTLES HERE ---
-    # We list all of them; the code inside them determines which one applies
+    # Apply Throttles
     throttle_classes = [BusinessTierThrottle, ProTierThrottle, FreeTierThrottle]
 
     def get_queryset(self):
@@ -41,37 +94,41 @@ class JobListAPI(generics.ListAPIView):
 
         if search_term:
             # 1. Define where to search (Vector)
-            # Search in the title (weight A - most important) and company/skills (B)
+            # We use Cast for 'skills' to safely search inside the JSONField as text
             vector = SearchVector('title', weight='A') + \
                      SearchVector('company', weight='B') + \
-                     SearchVector('skills', weight='B')
+                     SearchVector(Cast('skills', TextField()), weight='B')
 
             # 2. Process the query (Query)
             # SearchQuery automatically removes stop words (the, a, in) and performs stemming
             query = SearchQuery(search_term)
 
             # 3. Filter and sort by relevance (Rank)
+            # We keep rank >= 0.1 to remove irrelevant results
             queryset = queryset.annotate(
                 rank=SearchRank(vector, query)
             ).filter(rank__gte=0.1).order_by('-rank', '-posted_at')
 
         return queryset
 
+    @extend_schema(
+        summary="List jobs (stable v1 contract)",
+        responses=JobListResponseSerializer,
+    )
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
 
-        # Handle Pagination
+        # Handle Pagination Results
         current_results = response.data['results'] if isinstance(response.data, dict) else response.data
 
         # --- LOGIC: ZERO RESULTS AUTOMATIC SCRAPER ---
         if len(current_results) == 0:
             search_term = request.query_params.get('search')
-            # Check 'skills' filter too since your filter uses that name
             skills_term = request.query_params.get('skills')
             term_to_scrape = search_term or skills_term
 
             if term_to_scrape:
-                # Create a lock key to prevent "Thundering Herd"
+                # Create a lock key to prevent "Thundering Herd" (multiple scrapers for same term)
                 lock_key = f"scrape_lock_{term_to_scrape.lower()}_Europe"
                 is_already_scraping = cache.get(lock_key)
 
@@ -83,13 +140,32 @@ class JobListAPI(generics.ListAPIView):
                     print(f"Scrape ALREADY in progress for '{term_to_scrape}'. Skipping.")
 
         # --- LOGIC: CONTENT NEGOTIATION ---
-        # If HTMX/Browser, return HTML
+
+        # 1. HTMX Request (Partial Update)
+        # Returns only the job list part, not the whole page header/footer
         if request.headers.get('HX-Request') == 'true':
-            return Response(
+            htmx_response = Response(
                 {'page_obj': current_results},
                 template_name='core/partials/job_results.html'
             )
+            return htmx_response
 
+        # 2. Standard Browser Request (Full Page Load)
+        # If the user visits /jobs/ directly in browser, render the full page
+        if request.accepted_renderer.format == 'html':
+            html_response = Response(
+                {
+                    'page_obj': current_results,
+                    'query': request.query_params.get('search', ''),
+                    'location': request.query_params.get('location', '')
+                },
+                template_name='core/job_list.html'
+            )
+            return html_response
+
+        # 3. JSON API Request
+        response["X-API-Version"] = "v1"
+        log_api_request(request, response)
         return response
 
 
@@ -101,6 +177,10 @@ class ScrapeRequestSerializer(serializers.Serializer):
 
 
 class ScrapeTriggerAPI(APIView):
+    # Restrict manual scrape trigger to admin users or requests with a valid API key.
+    permission_classes = [IsAdminUser | HasAPIKey]
+    throttle_classes = [ScrapeTriggerThrottle]
+
     @extend_schema(request=ScrapeRequestSerializer)
     def post(self, request):
         serializer = ScrapeRequestSerializer(data=request.data)
@@ -110,9 +190,38 @@ class ScrapeTriggerAPI(APIView):
 
             run_scrapers.delay(keyword, location)
 
-            return Response({
+            response = Response({
                 "message": "Scraper started successfully",
                 "target": f"{keyword} jobs in {location}",
                 "note": "Check back in 2-3 minutes for results."
             })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            response["X-API-Version"] = "v1"
+            log_api_request(request, response)
+            return response
+
+        response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        response["X-API-Version"] = "v1"
+        log_api_request(request, response)
+        return response
+
+
+class LegacyJobListAPI(JobListAPI):
+    """
+    Compatibility endpoint kept during v1 migration window.
+    """
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response["Deprecation"] = "true"
+        response["Sunset"] = "Wed, 31 Dec 2026 23:59:59 GMT"
+        response["Link"] = '</api/v1/jobs/>; rel="successor-version"'
+        return response
+
+
+class LegacyScrapeTriggerAPI(ScrapeTriggerAPI):
+    def post(self, request):
+        response = super().post(request)
+        response["Deprecation"] = "true"
+        response["Sunset"] = "Wed, 31 Dec 2026 23:59:59 GMT"
+        response["Link"] = '</api/v1/scrape/>; rel="successor-version"'
+        return response

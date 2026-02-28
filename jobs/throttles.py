@@ -11,10 +11,6 @@ class FreeTierThrottle(SimpleRateThrottle):
     rate = '20/day'
 
     def get_cache_key(self, request, view):
-        # 1. Check if it's a Browser/HTMX request (Allow)
-        if request.accepts('text/html') or request.headers.get('HX-Request') == 'true':
-            return None
-
         ident = self.get_ident(request)  # Default to IP address
 
         # 2. Check for API Key
@@ -44,6 +40,21 @@ class FreeTierThrottle(SimpleRateThrottle):
                 pass
 
         # 3. Apply the 20/day limit to the identifier (IP or User ID)
+        return self.cache_format % {
+            'scope': self.scope,
+            'ident': ident
+        }
+
+
+class ScrapeTriggerThrottle(SimpleRateThrottle):
+    """
+    Strict endpoint-level throttle for manual scrape triggers.
+    """
+    scope = 'scrape_trigger'
+    rate = '5/hour'
+
+    def get_cache_key(self, request, view):
+        ident = self.get_ident(request)
         return self.cache_format % {
             'scope': self.scope,
             'ident': ident

@@ -7,6 +7,8 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('developers/', views.developer_guide, name='developer_guide'),
+    path('developers/changelog/', views.api_changelog, name='api_changelog'),
+    path('developers/deprecation-policy/', views.deprecation_policy, name='deprecation_policy'),
 
     # --- Job Board Features ---
     path('jobs/', views.job_list, name='job_list'),

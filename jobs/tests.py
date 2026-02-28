@@ -1,11 +1,12 @@
 from django.test import TestCase
-
-# Create your tests here.
-from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory
 from rest_framework import status
+from rest_framework_api_key.models import APIKey
+from unittest.mock import patch
 from .models import Job
+from .throttles import FreeTierThrottle
 
 
 class JobSearchTests(TestCase):
@@ -57,3 +58,58 @@ class JobSearchTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results'] if 'results' in response.data else response.data
         self.assertEqual(len(results), 2)
+
+
+class ScrapeTriggerSecurityTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse('job-scrape')
+
+    @patch("jobs.views.run_scrapers.delay")
+    def test_scrape_trigger_requires_auth(self, mock_delay):
+        response = self.client.post(self.url, {"keyword": "Python", "location": "Europe"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        mock_delay.assert_not_called()
+
+    @patch("jobs.views.run_scrapers.delay")
+    def test_scrape_trigger_accepts_valid_api_key(self, mock_delay):
+        _, raw_key = APIKey.objects.create_key(name="test@example.com")
+        response = self.client.post(
+            self.url,
+            {"keyword": "Python", "location": "Europe"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Api-Key {raw_key}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_delay.assert_called_once_with("Python", "Europe")
+
+
+class FreeTierThrottleTests(TestCase):
+    def test_html_requests_are_not_exempt_from_free_throttle(self):
+        request = APIRequestFactory().get("/api/jobs/", HTTP_ACCEPT="text/html")
+        key = FreeTierThrottle().get_cache_key(request, view=None)
+        self.assertIsNotNone(key)
+
+
+class APIVersioningTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        Job.objects.create(
+            title="Backend Engineer",
+            company="Versioned Inc",
+            description="Contract test job",
+            skills=["Python"],
+            url="http://example.com/versioning-1",
+            source="LinkedIn",
+        )
+
+    def test_v1_endpoint_is_available(self):
+        response = self.client.get(reverse("job-list-v1"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["X-API-Version"], "v1")
+
+    def test_legacy_endpoint_returns_deprecation_headers(self):
+        response = self.client.get(reverse("job-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Deprecation"], "true")
+        self.assertIn("/api/v1/jobs/", response["Link"])

@@ -1,10 +1,9 @@
 from django.urls import path
-from .views import JobListAPI, ScrapeTriggerAPI
+from .views import LegacyJobListAPI, LegacyScrapeTriggerAPI
 
 urlpatterns = [
-    # Map 'api/jobs/'
-    path('jobs/', JobListAPI.as_view(), name='job-list'),
+    # Legacy endpoints kept for backward compatibility.
+    path('jobs/', LegacyJobListAPI.as_view(), name='job-list'),
 
-    # Map 'api/scrape/'
-    path('scrape/', ScrapeTriggerAPI.as_view(), name='job-scrape'),
+    path('scrape/', LegacyScrapeTriggerAPI.as_view(), name='job-scrape'),
 ]

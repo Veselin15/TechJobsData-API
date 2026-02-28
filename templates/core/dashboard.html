@@ -45,7 +45,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    {% if user.subscription.plan_type == 'business' %}
+                    {% if plan_type == 'business' %}
                         <span class="inline-flex items-center gap-2 rounded-xl bg-cyan-500/10 px-4 py-2 text-sm font-bold text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-500/5">
                         <span class="relative flex h-2 w-2">
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
@@ -53,7 +53,7 @@
                         </span>
                         BUSINESS PLAN
                     </span>
-                    {% elif user.subscription.plan_type == 'pro' %}
+                    {% elif plan_type == 'pro' %}
                         <span class="inline-flex items-center gap-2 rounded-xl bg-indigo-500/10 px-4 py-2 text-sm font-bold text-indigo-400 border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
                         <span class="relative flex h-2 w-2">
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -78,15 +78,7 @@
 
                 <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-md">
                     <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Daily Limit</p>
-                    <p class="text-2xl font-bold text-white">
-                        {% if user.subscription.plan_type == 'business' %}
-                            10,000
-                        {% elif user.subscription.plan_type == 'pro' %}
-                            1,000
-                        {% else %}
-                            20
-                        {% endif %}
-                    </p>
+                    <p class="text-2xl font-bold text-white">{{ daily_limit }}</p>
                 </div>
 
                 <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-md">
@@ -96,6 +88,22 @@
                 <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-md">
                     <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">API Version</p>
                     <p class="text-2xl font-bold text-indigo-300">v1.0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-md">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Requests Today</p>
+                    <p class="text-2xl font-bold text-white">{{ today_usage }}</p>
+                </div>
+                <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-md">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Remaining Quota</p>
+                    <p class="text-2xl font-bold text-cyan-300">{{ remaining_quota }}</p>
+                </div>
+                <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-md">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Next Reset (UTC)</p>
+                    <p class="text-lg font-bold text-white">{{ next_reset|date:"Y-m-d H:i" }}</p>
+                    <p class="text-xs text-slate-400 mt-1">in {{ reset_hours }}h {{ reset_minutes }}m</p>
                 </div>
             </div>
 
@@ -186,9 +194,9 @@
                             <div>
                                 <p class="text-slate-500 text-xs font-bold uppercase mb-1">Current Plan</p>
                                 <p class="text-2xl font-bold text-white">
-                                    {% if user.subscription.plan_type == 'business' %}
+                                    {% if plan_type == 'business' %}
                                         Business (High Volume)
-                                    {% elif user.subscription.plan_type == 'pro' %}
+                                    {% elif plan_type == 'pro' %}
                                         Developer Pro
                                     {% else %}
                                         Hobbyist (Free)
@@ -196,7 +204,7 @@
                                 </p>
                             </div>
                             <div class="w-full md:w-auto">
-                                {% if user.subscription.plan_type == 'pro' or user.subscription.plan_type == 'business' %}
+                                {% if plan_type == 'pro' or plan_type == 'business' %}
                                     <form action="{% url 'billing_portal' %}" method="POST">
                                         {% csrf_token %}
                                         <button type="submit"
@@ -213,6 +221,62 @@
                                     </div>
                                 {% endif %}
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-sm">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="p-3 bg-cyan-500/10 rounded-xl text-cyan-400 border border-cyan-500/20">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6m3 6V7m3 10v-3m3 3V4M4 20h16"/>
+                                </svg>
+                            </div>
+                            <h2 class="text-xl font-bold text-white">Usage Dashboard (Last 7 Days)</h2>
+                        </div>
+
+                        <div class="space-y-3">
+                            {% for day in daily_usage %}
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="text-slate-400">{{ day.label }} <span class="text-slate-500">({{ day.date }})</span></span>
+                                        <span class="text-slate-300 font-bold">{{ day.count }}</span>
+                                    </div>
+                                    <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400"
+                                             style="width: {% widthratio day.count daily_limit 100 %}%"></div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-sm">
+                        <h2 class="text-xl font-bold text-white mb-6">Recent API Requests</h2>
+                        <div class="overflow-x-auto border border-white/5 rounded-xl">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-white/5 text-slate-400">
+                                <tr>
+                                    <th class="text-left px-4 py-3">Time (UTC)</th>
+                                    <th class="text-left px-4 py-3">Method</th>
+                                    <th class="text-left px-4 py-3">Endpoint</th>
+                                    <th class="text-left px-4 py-3">Status</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for req in recent_requests %}
+                                    <tr class="border-t border-white/5">
+                                        <td class="px-4 py-3 text-slate-400">{{ req.created_at|date:"Y-m-d H:i:s" }}</td>
+                                        <td class="px-4 py-3 text-cyan-300 font-bold">{{ req.method }}</td>
+                                        <td class="px-4 py-3 text-slate-300 font-mono">{{ req.endpoint }}</td>
+                                        <td class="px-4 py-3 {% if req.status_code < 300 %}text-green-400{% elif req.status_code < 400 %}text-yellow-400{% else %}text-red-400{% endif %}">{{ req.status_code }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td class="px-4 py-6 text-center text-slate-500" colspan="4">No API requests tracked yet.</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

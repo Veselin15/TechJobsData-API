@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="bg-slate-900/70 border border-white/10 rounded-2xl p-8">
+        <h1 class="text-3xl font-bold text-white mb-2">API Deprecation Policy</h1>
+        <p class="text-slate-400 mb-8">How we evolve the API without breaking production integrations.</p>
+
+        <div class="space-y-6 text-sm text-slate-300">
+            <div class="border border-white/10 rounded-xl p-5 bg-white/5">
+                <h2 class="text-white font-bold mb-2">Contract Stability (v1)</h2>
+                <p>Fields in existing v1 responses are additive-only. We do not remove or rename response keys inside v1.</p>
+            </div>
+
+            <div class="border border-white/10 rounded-xl p-5 bg-white/5">
+                <h2 class="text-white font-bold mb-2">Deprecation Window</h2>
+                <p>Deprecated endpoints receive at least 90 days notice before removal. During this period, responses include:</p>
+                <ul class="mt-2 list-disc list-inside">
+                    <li><code>Deprecation: true</code></li>
+                    <li><code>Sunset</code> date in RFC 7231 format</li>
+                    <li><code>Link</code> header pointing to the successor endpoint</li>
+                </ul>
+            </div>
+
+            <div class="border border-white/10 rounded-xl p-5 bg-white/5">
+                <h2 class="text-white font-bold mb-2">Version Lifecycle</h2>
+                <p>New breaking changes ship under a new path version (<code>/api/v2/...</code>). Older versions continue for the announced sunset period.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

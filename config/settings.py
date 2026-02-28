@@ -18,16 +18,26 @@ from django.core.exceptions import ImproperlyConfigured
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-import os
 
-# Use the environment variable if available, otherwise use a default for dev
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-for-localhost-12345')
+def get_bool_env(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in ("1", "true", "yes", "on")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
+# SECURITY: default to production-safe values unless explicitly enabled for local development.
+DEBUG = get_bool_env("DJANGO_DEBUG", default=False)
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-key-for-localhost-12345"
+    else:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY environment variable is required when DEBUG is False.")
 
 if DEBUG:
-    ALLOWED_HOSTS = ["*"]
+    ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 else:
     ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "techjobsdata.com").split(",")
 # Use the environment variable if present, otherwise default to production

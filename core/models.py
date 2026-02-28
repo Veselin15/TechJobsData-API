@@ -31,3 +31,37 @@ class SavedJob(models.Model):
 
     def __str__(self):
         return f"{self.user.email} saved {self.job.title}"
+
+
+class APIRequestLog(models.Model):
+    """
+    Lightweight log for customer-facing API billing/usage visibility.
+    """
+    PLAN_CHOICES = [
+        ("free", "Free"),
+        ("pro", "Pro"),
+        ("business", "Business"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="api_request_logs",
+        null=True,
+        blank=True,
+    )
+    method = models.CharField(max_length=10)
+    endpoint = models.CharField(max_length=255)
+    status_code = models.PositiveSmallIntegerField()
+    plan_type = models.CharField(max_length=20, choices=PLAN_CHOICES, default="free")
+    api_key_prefix = models.CharField(max_length=16, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["plan_type", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.method} {self.endpoint} -> {self.status_code}"

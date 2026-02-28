@@ -5,12 +5,21 @@ from django.contrib.auth import login
 from django.contrib import messages
 from django.http import HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models.functions import TruncDate
 from rest_framework_api_key.models import APIKey
 
 from .forms import RegisterForm  # Assuming you renamed your form or use the one from before
-from .models import JobAlert, SavedJob
+from .models import JobAlert, SavedJob, APIRequestLog
 from jobs.models import Job
+
+PLAN_DAILY_LIMITS = {
+    "free": 20,
+    "pro": 1000,
+    "business": 10000,
+}
 
 
 # --- 1. Main Pages ---
@@ -27,8 +36,13 @@ def developer_guide(request):
 
     # Generate the absolute API URL for the docs
     context['api_url'] = request.build_absolute_uri('/api/v1/jobs/')
+    context['api_changelog_url'] = request.build_absolute_uri('/developers/changelog/')
+    context['api_deprecation_url'] = request.build_absolute_uri('/developers/deprecation-policy/')
 
     if request.user.is_authenticated:
+        sub = getattr(request.user, 'subscription', None)
+        context['plan_type'] = sub.plan_type if sub else 'free'
+
         # Try to find an existing key to show the prefix
         # We use "user-{id}" naming convention for uniqueness
         api_key = APIKey.objects.filter(name=request.user.email).first()
@@ -37,10 +51,19 @@ def developer_guide(request):
         context['key_prefix'] = api_key.prefix if api_key else "YOUR_PREFIX"
     else:
         # Default placeholder for guests
+        context['plan_type'] = 'free'
         context['has_key'] = False
         context['key_prefix'] = "YOUR_API_KEY"
 
     return render(request, 'core/developer_guide.html', context)
+
+
+def api_changelog(request):
+    return render(request, 'core/api_changelog.html')
+
+
+def deprecation_policy(request):
+    return render(request, 'core/deprecation_policy.html')
 
 
 # --- 2. Authentication ---
@@ -121,6 +144,7 @@ def dashboard(request):
     sub = getattr(request.user, 'subscription', None)
     plan_type = sub.plan_type if sub else 'free'
     is_premium = plan_type in ['pro', 'business']
+    daily_limit = PLAN_DAILY_LIMITS.get(plan_type, 20)
 
     # 2. Get Existing Key
     api_key = APIKey.objects.filter(name=request.user.email).first()
@@ -138,13 +162,52 @@ def dashboard(request):
     # 5. Get Saved Jobs
     saved_jobs = SavedJob.objects.filter(user=request.user).select_related('job').order_by('-created_at')
 
+    # 6. Usage & Billing Transparency Metrics
+    now = timezone.now()
+    today = now.date()
+    window_start = now - timedelta(days=6)
+
+    usage_queryset = APIRequestLog.objects.filter(user=request.user)
+    today_usage = usage_queryset.filter(created_at__date=today).count()
+    remaining_quota = max(daily_limit - today_usage, 0)
+
+    daily_usage_map = {
+        item["day"]: item["count"]
+        for item in usage_queryset.filter(created_at__gte=window_start)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+    }
+
+    daily_usage = []
+    for days_back in range(6, -1, -1):
+        day = today - timedelta(days=days_back)
+        daily_usage.append({
+            "label": day.strftime("%a"),
+            "date": day.strftime("%Y-%m-%d"),
+            "count": daily_usage_map.get(day, 0),
+        })
+
+    recent_requests = usage_queryset.order_by('-created_at')[:10]
+    next_reset = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    reset_in = next_reset - now
+
     context = {
         'api_key': api_key,
         'has_key': api_key is not None,
         'key_prefix': api_key.prefix if api_key else None,
+        'plan_type': plan_type,
         'is_premium': is_premium,
         'saved_jobs': saved_jobs,
         'new_api_key': new_api_key,
+        'daily_limit': daily_limit,
+        'today_usage': today_usage,
+        'remaining_quota': remaining_quota,
+        'daily_usage': daily_usage,
+        'recent_requests': recent_requests,
+        'next_reset': next_reset,
+        'reset_hours': reset_in.seconds // 3600,
+        'reset_minutes': (reset_in.seconds % 3600) // 60,
     }
     return render(request, 'core/dashboard.html', context)
 
