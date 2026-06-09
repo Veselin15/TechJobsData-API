@@ -6,7 +6,7 @@ class RemoteOKSpider(scrapy.Spider):
     name = "remoteok"
     allowed_domains = ["remoteok.com"]
 
-    def start_requests(self):
+    async def start(self):
         # FIX: Use 'impersonate' to avoid 403 Forbidden blocks
         yield scrapy.Request(
             "https://remoteok.com/rss",

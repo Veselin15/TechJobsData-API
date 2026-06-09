@@ -24,7 +24,7 @@ class GlassdoorSpider(scrapy.Spider):
         self.location_name = location
         self.loc_id = self.LOCATION_MAP.get(location, '1')
 
-    def start_requests(self):
+    async def start(self):
         """
         STEP 1: Warm-Up on Homepage.
         We pretend to come from Google to establish trust.

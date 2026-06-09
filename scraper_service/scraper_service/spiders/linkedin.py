@@ -9,7 +9,7 @@ class LinkedInSpider(scrapy.Spider):
     # LinkedIn Guest API usually caps at 1000 results (40 pages * 25 jobs)
     MAX_PAGES = 40
 
-    def start_requests(self):
+    async def start(self):
         keyword = getattr(self, 'keyword', 'Python')
         location = getattr(self, 'location', 'Europe')
 

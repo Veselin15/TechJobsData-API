@@ -14,7 +14,7 @@ class IndeedSpider(scrapy.Spider):
         self.keyword = keyword
         self.location = location
 
-    def start_requests(self):
+    async def start(self):
         # MIMIC AN ANDROID PHONE
         # Mobile endpoints often have weaker anti-bot protections
         params = {

@@ -8,7 +8,7 @@ class TheMuseSpider(scrapy.Spider):
     name = "themuse"
     allowed_domains = ["themuse.com"]
 
-    def start_requests(self):
+    async def start(self):
         # We ask for page 0, descending order (newest first)
         url = "https://www.themuse.com/api/public/jobs?category=Software%20Engineering&page=0&descending=true"
 

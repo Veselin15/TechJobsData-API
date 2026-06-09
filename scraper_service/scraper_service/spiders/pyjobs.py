@@ -6,7 +6,7 @@ class RemotePythonSpider(scrapy.Spider):
     name = "pyjobs"
     allowed_domains = ["python.org"]
 
-    def start_requests(self):
+    async def start(self):
         # FIX: Use 'impersonate' to look like a real browser
         yield scrapy.Request(
             "https://www.python.org/jobs/",

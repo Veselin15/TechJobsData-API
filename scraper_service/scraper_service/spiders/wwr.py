@@ -7,7 +7,7 @@ class WWRSpider(scrapy.Spider):
     name = "wwr"
     allowed_domains = ["weworkremotely.com"]
 
-    def start_requests(self):
+    async def start(self):
         # We must manually yield the request to attach the browser fingerprint
         yield scrapy.Request(
             "https://weworkremotely.com/remote-jobs.rss",
