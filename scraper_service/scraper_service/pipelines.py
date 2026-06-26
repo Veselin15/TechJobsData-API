@@ -12,9 +12,14 @@ class ScraperServicePipeline:
     def process_item(self, item, spider=None):
         close_old_connections()
         try:
-            return self.save_job(item)
+            result = self.save_job(item)
+            if result is None:
+                from scrapy.exceptions import DropItem
+                raise DropItem(f"Missing URL: {item.get('title')}")
+            return item
         except Exception:
-            logger.exception("Failed to save job from %s: %s", spider.name, item.get("url"))
+            spider_name = spider.name if spider else "unknown"
+            logger.exception("Failed to save job from %s: %s", spider_name, item.get("url"))
             raise
 
     def save_job(self, item):
