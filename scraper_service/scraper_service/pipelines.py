@@ -1,6 +1,6 @@
 import logging
 
-from django.db import close_old_connections
+from django.db import connections
 from jobs.models import Job
 
 from .utils import parse_salary, extract_skills, extract_seniority
@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 class ScraperServicePipeline:
     def process_item(self, item, spider=None):
-        close_old_connections()
+        conn = connections['default']
+        conn.close_if_unusable_or_obsolete()
+        conn.ensure_connection()
         try:
             result = self.save_job(item)
             if result is None:
