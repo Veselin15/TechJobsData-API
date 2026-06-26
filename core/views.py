@@ -133,8 +133,10 @@ def dashboard(request):
     """
     The Money Page. Users manage their subscription and keys here.
     """
-    # 1. Get Subscription Status
-    sub = getattr(request.user, 'subscription', None)
+    try:
+        sub = request.user.subscription
+    except Exception:
+        sub = None
     plan_type = sub.plan_type if sub else 'free'
     is_premium = plan_type in ['pro', 'business']
 
