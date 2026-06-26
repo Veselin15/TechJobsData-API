@@ -15,8 +15,8 @@ def _log_scrapy_output(spider_label, output):
     """Log Scrapy stats so we can see item counts and HTTP status codes."""
     item_match = re.search(r"'item_scraped_count':\s*(\d+)", output)
     dropped_match = re.search(r"'item_dropped_count':\s*(\d+)", output)
-    item_count = int(item_match.group(1)) if item_match else None
-    dropped_count = int(dropped_match.group(1)) if dropped_match else None
+    item_count = int(item_match.group(1)) if item_match else 0
+    dropped_count = int(dropped_match.group(1)) if dropped_match else 0
 
     status_matches = re.findall(
         r"'downloader/response_status_count/(\d+)':\s*(\d+)", output
@@ -25,15 +25,11 @@ def _log_scrapy_output(spider_label, output):
         statuses = ", ".join(f"{code}×{count}" for code, count in status_matches)
         logger.info("[%s] HTTP responses: %s", spider_label, statuses)
 
-    if item_count is not None:
-        logger.info("[%s] item_scraped_count=%s", spider_label, item_count)
-    if dropped_count:
-        logger.warning("[%s] item_dropped_count=%s", spider_label, dropped_count)
+    logger.info("[%s] items scraped=%s, dropped=%s", spider_label, item_count, dropped_count)
 
     if item_count == 0:
-        logger.warning("[%s] scraped 0 items — tail of scrapy output:", spider_label)
-        for line in output.strip().splitlines()[-20:]:
-            logger.warning("  scrapy> %s", line)
+        for line in output.strip().splitlines()[-15:]:
+            logger.warning("  [%s] %s", spider_label, line.strip())
 
     return item_count
 
@@ -132,12 +128,14 @@ def run_bulk_scrape():
             try:
                 _run_scrapy(
                     ["linkedin", "-a", f"keyword={tech}", "-a", f"location={region}"],
-                    timeout=120,
+                    timeout=300,
                     label=task_name,
                 )
                 results.append(task_name)
-            except Exception:
-                pass
+            except subprocess.TimeoutExpired:
+                logger.warning("[Bulk] %s timed out", task_name)
+            except Exception as e:
+                logger.warning("[Bulk] %s failed: %s", task_name, e)
 
     final_report = f"Bulk Scrape Complete. Covered: {', '.join(results)}"
     logger.info(final_report)
