@@ -1,6 +1,8 @@
 import logging
 
-from django.db import connections
+from django.db import close_old_connections
+from twisted.internet import threads
+from scrapy.exceptions import DropItem
 from jobs.models import Job
 
 from .utils import parse_salary, extract_skills, extract_seniority
@@ -10,15 +12,17 @@ logger = logging.getLogger(__name__)
 
 class ScraperServicePipeline:
     def process_item(self, item, spider=None):
-        conn = connections['default']
-        conn.close_if_unusable_or_obsolete()
-        conn.ensure_connection()
+        return threads.deferToThread(self._process_in_thread, item, spider)
+
+    def _process_in_thread(self, item, spider):
+        close_old_connections()
         try:
             result = self.save_job(item)
             if result is None:
-                from scrapy.exceptions import DropItem
                 raise DropItem(f"Missing URL: {item.get('title')}")
             return item
+        except DropItem:
+            raise
         except Exception:
             spider_name = spider.name if spider else "unknown"
             logger.exception("Failed to save job from %s: %s", spider_name, item.get("url"))
