@@ -64,11 +64,10 @@ def register(request):
 # --- 3. Job Board Logic ---
 
 def job_list(request):
-    """
-    Searchable, paginated job board with 'Saved' status checking.
-    """
     query = request.GET.get('q', '')
     location = request.GET.get('loc', '')
+    source = request.GET.get('source', '')
+    seniority = request.GET.get('seniority', '')
 
     jobs = Job.objects.all().order_by('-posted_at')
 
@@ -80,24 +79,41 @@ def job_list(request):
         )
     if location:
         jobs = jobs.filter(location__icontains=location)
+    if source:
+        jobs = jobs.filter(source=source)
+    if seniority:
+        jobs = jobs.filter(seniority=seniority)
+
+    total_count = jobs.count()
 
     paginator = Paginator(jobs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Get IDs of jobs saved by this user (efficient lookup)
     saved_job_ids = []
     if request.user.is_authenticated:
         saved_job_ids = list(SavedJob.objects.filter(user=request.user).values_list('job_id', flat=True))
+
+    available_sources = list(
+        Job.objects.values_list('source', flat=True).distinct().order_by('source')
+    )
+    available_seniorities = list(
+        Job.objects.exclude(seniority='Not Specified')
+        .values_list('seniority', flat=True).distinct().order_by('seniority')
+    )
 
     context = {
         'page_obj': page_obj,
         'query': query,
         'location': location,
+        'source': source,
+        'seniority': seniority,
+        'total_count': total_count,
         'saved_job_ids': saved_job_ids,
+        'available_sources': available_sources,
+        'available_seniorities': available_seniorities,
     }
 
-    # If this is an HTMX request (pagination or search), render just the results
     if request.headers.get('HX-Request'):
         return render(request, 'core/partials/job_results.html', context)
 

@@ -1,5 +1,13 @@
 {% extends 'base.html' %}
 
+{% block title %}{% if query %}{{ query }} Jobs{% if location %} in {{ location }}{% endif %} — {% endif %}Browse Tech Jobs | TechJobsData{% endblock %}
+{% block meta_description %}{% if query %}Find {{ query }} jobs{% if location %} in {{ location }}{% endif %}. {% endif %}Browse {{ total_count|default:"thousands of" }} remote tech job listings from LinkedIn, Glassdoor, and more.{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{% if query %}{{ query }} Jobs{% else %}Browse Tech Jobs{% endif %} | TechJobsData">
+<meta property="og:description" content="{% if query %}Find {{ query }} jobs{% if location %} in {{ location }}{% endif %}. {% endif %}Browse remote tech job listings updated in real-time.">
+<meta property="og:image" content="https://techjobsdata.com/static/img/logo.png">
+{% endblock %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 lg:py-12">
 
@@ -7,42 +15,93 @@
         <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-cyan-500/20 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
 
         <div class="relative bg-slate-900/80 border border-white/10 rounded-2xl p-4 sm:p-6 backdrop-blur-xl shadow-2xl">
-            <form hx-get="{% url 'job_list' %}"
+            <form id="search-form"
+                  hx-get="{% url 'job_list' %}"
                   hx-target="#job-results-area"
                   hx-swap="outerHTML show:window:top"
-                  class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  hx-include="#search-form"
+                  class="space-y-4">
 
-                <div class="md:col-span-5 relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-5 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" name="q" value="{{ query }}"
+                               class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
+                               placeholder="Job title, keywords, or company">
                     </div>
-                    <input type="text" name="q" value="{{ query }}"
-                           class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
-                           placeholder="Job title, keywords, or company">
-                </div>
 
-                <div class="md:col-span-5 relative">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
+                    <div class="md:col-span-5 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" name="loc" value="{{ location }}"
+                               class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
+                               placeholder="Remote, City, or Country">
                     </div>
-                    <input type="text" name="loc" value="{{ location }}"
-                           class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
-                           placeholder="Remote, City, or Country">
+
+                    <div class="md:col-span-2">
+                        <button type="submit" class="w-full h-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
+                            <span>Find Jobs</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="md:col-span-2">
-                    <button type="submit" class="w-full h-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
-                        <span>Find Jobs</span>
-                    </button>
+                {% if available_sources or available_seniorities %}
+                <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-white/5">
+                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Filters:</span>
+
+                    {% if available_sources %}
+                    <select name="source"
+                            onchange="this.form.requestSubmit()"
+                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+                        <option value="">All Sources</option>
+                        {% for s in available_sources %}
+                            <option value="{{ s }}" {% if s == source %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+
+                    {% if available_seniorities %}
+                    <select name="seniority"
+                            onchange="this.form.requestSubmit()"
+                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+                        <option value="">All Levels</option>
+                        {% for s in available_seniorities %}
+                            <option value="{{ s }}" {% if s == seniority %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+
+                    {% if source or seniority %}
+                    <a href="{% url 'job_list' %}{% if query %}?q={{ query }}{% endif %}{% if location %}{% if query %}&{% else %}?{% endif %}loc={{ location }}{% endif %}"
+                       class="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">
+                        Clear filters
+                    </a>
+                    {% endif %}
                 </div>
+                {% endif %}
             </form>
         </div>
     </div>
+
+    {% if total_count is not None %}
+    <div class="flex items-center justify-between mb-6 px-1">
+        <p class="text-sm text-slate-400">
+            <span class="text-white font-semibold">{{ total_count|default:"0" }}</span> job{{ total_count|pluralize }} found
+            {% if query %} for <span class="text-indigo-400 font-medium">"{{ query }}"</span>{% endif %}
+            {% if location %} in <span class="text-indigo-400 font-medium">{{ location }}</span>{% endif %}
+            {% if source %} from <span class="text-indigo-400 font-medium">{{ source }}</span>{% endif %}
+            {% if seniority %} &middot; <span class="text-indigo-400 font-medium">{{ seniority }}</span>{% endif %}
+        </p>
+    </div>
+    {% endif %}
 
     <div id="job-results-container" class="relative z-10">
         {% if limit_reached %}

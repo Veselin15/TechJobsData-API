@@ -1,42 +1,28 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
-{% block content %}
-    <div class="max-w-4xl mx-auto py-20 px-4">
-        <div class="bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
-            <h1 class="text-3xl font-bold text-white mb-2">{{ job.title }}</h1>
-            <p class="text-xl text-indigo-400 mb-6">{{ job.company }} &bull; {{ job.location }}</p>
+{% block title %}{{ job.title }} at {{ job.company }} | TechJobsData{% endblock %}
+{% block meta_description %}{{ job.title }} at {{ job.company }} in {{ job.location }}. {% if job.salary_min and job.salary_max %}Salary: {{ job.currency|default:"$" }}{{ job.salary_min }}k–{{ job.salary_max }}k. {% endif %}View details and apply now.{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ job.title }} at {{ job.company }}">
+<meta property="og:description" content="{{ job.title }} position at {{ job.company }} in {{ job.location }}. Apply now on TechJobsData.">
+<meta property="og:image" content="https://techjobsdata.com/static/img/logo.png">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% endblock %}
 
-            <div class="prose prose-invert max-w-none text-slate-300">
-                <p><strong>Posted:</strong> {{ job.posted_at|date:"M d, Y" }}</p>
-                <p><strong>Salary:</strong> {{ job.salary|default:"Not specified" }}</p>
-
-                <div class="mt-8 flex gap-4">
-                    <a href="{{ job.url }}" target="_blank"
-                       class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all">
-                        Apply Now 🚀
-                    </a>
-                    <a href="{% url 'job_list' %}"
-                       class="px-6 py-3 border border-slate-700 text-slate-300 hover:bg-slate-800 rounded-xl transition-all">
-                        Back to Jobs
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% block extra_head %}
-        <script type="application/ld+json">
-            {
-              "@context": "https://schema.org/",
-              "@type": "JobPosting",
-              "title": "{{ job.title|escapejs }}",
-  "description": "{{ job.description|escapejs }}",
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "JobPosting",
+  "title": "{{ job.title|escapejs }}",
+  "description": "{{ job.description|default:job.title|escapejs }}",
   "identifier": {
     "@type": "PropertyValue",
     "name": "{{ job.company|escapejs }}",
     "value": "{{ job.id }}"
   },
   "datePosted": "{{ job.posted_at|date:'Y-m-d' }}",
-  "validThrough": "{{ job.posted_at|date:'Y-m-d' }}",
   "hiringOrganization": {
     "@type": "Organization",
     "name": "{{ job.company|escapejs }}"
@@ -45,20 +31,114 @@
     "@type": "Place",
     "address": {
       "@type": "PostalAddress",
-      "addressLocality": "{{ job.location|escapejs }}",
-      "addressCountry": "Remote"
+      "addressLocality": "{{ job.location|escapejs }}"
     }
-  },
+  }{% if job.salary_min or job.salary_max %},
   "baseSalary": {
     "@type": "MonetaryAmount",
-    "currency": "USD",
+    "currency": "{{ job.currency|default:'USD' }}",
     "value": {
       "@type": "QuantitativeValue",
-      "value": "{{ job.salary_max|default:0 }}",
+      {% if job.salary_min and job.salary_max %}"minValue": {{ job.salary_min }},
+      "maxValue": {{ job.salary_max }},{% elif job.salary_max %}"value": {{ job.salary_max }},{% else %}"value": {{ job.salary_min }},{% endif %}
       "unitText": "YEAR"
     }
-  }
+  }{% endif %}
 }
-        </script>
-    {% endblock %}
+</script>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-4xl mx-auto py-12 sm:py-20 px-4">
+        <div class="mb-6">
+            <a href="{% url 'job_list' %}"
+               class="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors group">
+                <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Back to Jobs
+            </a>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-1
+                {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% else %}bg-orange-500{% endif %}"></div>
+
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white mb-3">{{ job.title }}</h1>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-slate-400">
+                        <span class="text-indigo-400 font-semibold">{{ job.company }}</span>
+                        <span class="text-slate-600">&middot;</span>
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            {{ job.location }}
+                        </span>
+                    </div>
+                </div>
+                <span class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium border
+                    {% if job.source == 'LinkedIn' %}bg-blue-500/10 text-blue-300 border-blue-500/20
+                    {% elif job.source == 'Glassdoor' %}bg-green-500/10 text-green-300 border-green-500/20
+                    {% else %}bg-white/5 text-slate-300 border-white/10{% endif %}">
+                    {{ job.source }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Posted</p>
+                    <p class="text-sm text-white font-medium">{{ job.posted_at|date:"M d, Y"|default:"N/A" }}</p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Seniority</p>
+                    <p class="text-sm text-white font-medium">{{ job.seniority|default:"Not Specified" }}</p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3 col-span-2">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Salary</p>
+                    <p class="text-sm font-medium {% if job.salary_min or job.salary_max %}text-emerald-400{% else %}text-slate-500{% endif %}">
+                        {% if job.salary_min and job.salary_max %}
+                            {{ job.currency|default:"$" }}{{ job.salary_min|intcomma }} – {{ job.currency|default:"$" }}{{ job.salary_max|intcomma }}
+                        {% elif job.salary_min %}
+                            From {{ job.currency|default:"$" }}{{ job.salary_min|intcomma }}
+                        {% elif job.salary_max %}
+                            Up to {{ job.currency|default:"$" }}{{ job.salary_max|intcomma }}
+                        {% else %}
+                            Not specified
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            {% if job.skills %}
+            <div class="mb-8">
+                <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Skills</h2>
+                <div class="flex flex-wrap gap-2">
+                    {% for skill in job.skills %}
+                        <span class="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1.5 text-sm font-medium text-indigo-300 border border-indigo-500/20">
+                            {{ skill }}
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if job.description %}
+            <div class="mb-8">
+                <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Description</h2>
+                <div class="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed">
+                    {{ job.description|linebreaks }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex flex-wrap gap-4 pt-6 border-t border-white/5">
+                <a href="{{ job.url }}" target="_blank" rel="noopener"
+                   class="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-indigo-500/20">
+                    Apply Now
+                </a>
+                <a href="{% url 'job_list' %}"
+                   class="px-8 py-3.5 border border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600 rounded-xl transition-all">
+                    Browse More Jobs
+                </a>
+            </div>
+        </div>
+    </div>
 {% endblock %}

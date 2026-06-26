@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}TechJobsData — The Real-Time Tech Jobs Data API{% endblock %}
+{% block meta_description %}Stop parsing HTML. Get structured tech job listings from LinkedIn, Glassdoor, and more with a single REST API call. {{ job_count|intcomma }} jobs and counting.{% endblock %}
 
 {% block content %}
     <section class="relative pt-24 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
@@ -9,7 +13,7 @@
 
         <span class="inline-flex items-center py-1.5 px-3 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-8 tracking-wide uppercase shadow-[0_0_10px_rgba(99,102,241,0.2)]">
             <span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span>
-            TechJobsData v1.0 • Live Scraping Engine
+            {{ job_count|intcomma }} Jobs Indexed • Live Scraping Engine
         </span>
 
             <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">

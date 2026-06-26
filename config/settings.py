@@ -101,6 +101,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.global_premium_status',
+                'core.context_processors.social_login_status',
             ],
         },
     },
@@ -246,6 +247,10 @@ ACCOUNT_EMAIL_REQUIRED = True
 # Google Provider Configuration
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_CLIENT_ID', ''),
+            'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
+        },
         'SCOPE': [
             'profile',
             'email',

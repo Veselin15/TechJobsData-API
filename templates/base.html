@@ -6,12 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1995258824270781"
             crossorigin="anonymous"></script>
-    <title>TechJobsData API</title>
+    <title>{% block title %}TechJobsData — Real-Time Tech Jobs API{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}The #1 API for real-time remote tech job data. Get structured listings from LinkedIn, Glassdoor, and more with a single REST call.{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TechJobsData">
+    {% block og_tags %}
+    <meta property="og:title" content="TechJobsData — Real-Time Tech Jobs API">
+    <meta property="og:description" content="The #1 API for real-time remote tech job data. Get structured listings from LinkedIn, Glassdoor, and more with a single REST call.">
+    <meta property="og:image" content="https://techjobsdata.com/static/img/logo.png">
+    {% endblock %}
+    <meta name="twitter:card" content="summary">
+
     <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet"/>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    {% block extra_head %}{% endblock %}
 
     <script>
         tailwind.config = {

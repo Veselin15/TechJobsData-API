@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load socialaccount %} {% block content %}
+{% load socialaccount %}
+
+{% block title %}Create Account | TechJobsData{% endblock %}
+{% block meta_description %}Create a free TechJobsData account to get your API key and start accessing real-time tech job data.{% endblock %}
+
+{% block content %}
     <div class="relative min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
 
         <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none"></div>
@@ -27,6 +32,7 @@
 
                 <div class="relative z-10 space-y-6">
 
+                    {% if google_login_available %}
                     <a href="{% provider_login_url 'google' %}"
                        class="w-full flex justify-center items-center gap-3 py-3.5 px-4 border border-slate-700/50 rounded-xl shadow-lg bg-white text-sm font-bold text-slate-900 hover:bg-slate-50 transition-all transform hover:-translate-y-0.5 active:scale-95">
                         <img src="{% static 'img/google.svg' %}" class="h-5 w-5" alt="Google">
@@ -43,6 +49,7 @@
                             </span>
                         </div>
                     </div>
+                    {% endif %}
 
                     <form class="space-y-6" method="POST">
                         {% csrf_token %}

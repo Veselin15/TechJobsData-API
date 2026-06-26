@@ -4,7 +4,7 @@
     <div class="group relative bg-white/[0.03] hover:bg-white/[0.07] transition-all duration-300 border border-white/5 rounded-2xl overflow-hidden hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5">
 
         <div class="absolute left-0 top-0 bottom-0 w-1.5
-            {% if job.source == 'LinkedIn' %}bg-blue-500{% else %}bg-orange-500{% endif %}">
+            {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% else %}bg-orange-500{% endif %}">
         </div>
 
         <div class="p-5 sm:p-6 pl-7 sm:pl-8 flex gap-4">
@@ -22,14 +22,32 @@
                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                         {{ job.company }}
                     </span>
-                    <span class="hidden sm:inline text-slate-600">•</span>
+                    <span class="hidden sm:inline text-slate-600">&middot;</span>
                     <span class="flex items-center gap-1.5">
                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         {{ job.location }}
                     </span>
+                    {% if job.salary_min or job.salary_max %}
+                    <span class="hidden sm:inline text-slate-600">&middot;</span>
+                    <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {% if job.salary_min and job.salary_max %}
+                            {{ job.currency|default:"$" }}{{ job.salary_min|floatformat:"0" }}k – {{ job.currency|default:"$" }}{{ job.salary_max|floatformat:"0" }}k
+                        {% elif job.salary_min %}
+                            From {{ job.currency|default:"$" }}{{ job.salary_min|floatformat:"0" }}k
+                        {% else %}
+                            Up to {{ job.currency|default:"$" }}{{ job.salary_max|floatformat:"0" }}k
+                        {% endif %}
+                    </span>
+                    {% endif %}
                 </div>
 
-                <div class="mt-5 flex flex-wrap gap-2 relative z-10">
+                <div class="mt-4 flex flex-wrap items-center gap-2 relative z-10">
+                    {% if job.seniority and job.seniority != "Not Specified" %}
+                        <span class="inline-flex items-center rounded-full bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300 border border-purple-500/20">
+                            {{ job.seniority }}
+                        </span>
+                    {% endif %}
                     {% for skill in job.skills|slice:":5" %}
                         <span class="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors cursor-default">
                             {{ skill }}
@@ -40,7 +58,10 @@
 
             <div class="shrink-0 flex flex-col items-end justify-between gap-4 relative z-20">
                 <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center rounded-lg bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-300 border border-white/10">
+                    <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium border
+                        {% if job.source == 'LinkedIn' %}bg-blue-500/10 text-blue-300 border-blue-500/20
+                        {% elif job.source == 'Glassdoor' %}bg-green-500/10 text-green-300 border-green-500/20
+                        {% else %}bg-white/5 text-slate-300 border-white/10{% endif %}">
                         {{ job.source }}
                     </span>
                     <span class="text-xs text-slate-500 font-mono whitespace-nowrap hidden sm:block">
@@ -59,13 +80,19 @@
     </div>
     {% empty %}
     <div class="text-center py-24">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800/50 mb-4 border border-white/5">
-            <svg class="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-800/50 mb-6 border border-white/5">
+            <svg class="w-10 h-10 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
         </div>
-        <h3 class="text-lg font-medium text-white">No jobs found</h3>
-        <p class="mt-2 text-slate-400 max-w-sm mx-auto">Try adjusting your search terms or location to find what you're looking for.</p>
+        <h3 class="text-xl font-bold text-white mb-2">No jobs found</h3>
+        <p class="text-slate-400 max-w-md mx-auto mb-8">Try adjusting your search terms or location to find what you're looking for.</p>
+        <div class="flex flex-wrap justify-center gap-2">
+            <a href="{% url 'job_list' %}?q=Python" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">Python</a>
+            <a href="{% url 'job_list' %}?q=React" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">React</a>
+            <a href="{% url 'job_list' %}?q=DevOps" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">DevOps</a>
+            <a href="{% url 'job_list' %}?q=Data+Engineer" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">Data Engineer</a>
+        </div>
     </div>
     {% endfor %}
 
@@ -73,7 +100,7 @@
         <nav class="isolate inline-flex -space-x-px rounded-xl shadow-lg shadow-black/20">
             {% if page_obj.has_previous %}
                 <button
-                    hx-get="{% url 'job_list' %}?page={{ page_obj.previous_page_number }}&q={{ query }}&loc={{ location }}"
+                    hx-get="{% url 'job_list' %}?page={{ page_obj.previous_page_number }}&q={{ query }}&loc={{ location }}&source={{ source }}&seniority={{ seniority }}"
                     hx-target="#job-results-area"
                     hx-swap="outerHTML show:window:top"
                     class="relative inline-flex items-center rounded-l-xl px-4 py-2.5 text-sm font-semibold text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all">
@@ -93,7 +120,7 @@
 
             {% if page_obj.has_next %}
                 <button
-                    hx-get="{% url 'job_list' %}?page={{ page_obj.next_page_number }}&q={{ query }}&loc={{ location }}"
+                    hx-get="{% url 'job_list' %}?page={{ page_obj.next_page_number }}&q={{ query }}&loc={{ location }}&source={{ source }}&seniority={{ seniority }}"
                     hx-target="#job-results-area"
                     hx-swap="outerHTML show:window:top"
                     class="relative inline-flex items-center rounded-r-xl px-4 py-2.5 text-sm font-semibold text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all">
