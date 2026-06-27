@@ -102,6 +102,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.global_premium_status',
                 'core.context_processors.social_login_status',
+                'core.context_processors.adsense_context',
             ],
         },
     },
@@ -264,6 +265,15 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_LOGOUT_ON_GET = True
+
+# --- GOOGLE ADSENSE ---
+ADSENSE_CLIENT_ID = 'ca-pub-1995258824270781'
+ADSENSE_SLOTS = {
+    'banner': '6181551539',
+    'sidebar': '6181551539',
+    'in_article': '6181551539',
+}
+ADSENSE_CONTENT_PAGES = {'index', 'job_list', 'job_detail', 'developer_guide'}
 
 # SECURITY: Trust the HTTPS signal from the proxy (Cloudflare/Docker)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

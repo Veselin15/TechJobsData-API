@@ -4,8 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1995258824270781"
+    {% if show_ads %}
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client }}"
             crossorigin="anonymous"></script>
+    {% endif %}
     <title>{% block title %}TechJobsData — Real-Time Tech Jobs API{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}The #1 API for real-time remote tech job data. Get structured listings from LinkedIn, Glassdoor, and more with a single REST call.{% endblock %}">
     <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
