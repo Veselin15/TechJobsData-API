@@ -12,7 +12,11 @@ class FreeTierThrottle(SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         # 1. Check if it's a Browser/HTMX request (Allow)
-        if request.accepts('text/html') or request.headers.get('HX-Request') == 'true':
+        # NOTE: don't use request.accepts('text/html') here — it returns True
+        # for 'Accept: */*' (curl/requests default), which let every anonymous
+        # API client bypass throttling entirely.
+        accept_header = request.headers.get('Accept', '')
+        if 'text/html' in accept_header or request.headers.get('HX-Request') == 'true':
             return None
 
         ident = self.get_ident(request)  # Default to IP address
@@ -40,7 +44,7 @@ class FreeTierThrottle(SimpleRateThrottle):
                         ident = user.id
                     else:
                         ident = api_key.id
-            except:
+            except Exception:
                 pass
 
         # 3. Apply the 20/day limit to the identifier (IP or User ID)
@@ -84,7 +88,7 @@ class ProTierThrottle(SimpleRateThrottle):
                             'scope': self.scope,
                             'ident': user.id
                         }
-        except:
+        except Exception:
             pass
         return None
 
@@ -119,6 +123,6 @@ class BusinessTierThrottle(SimpleRateThrottle):
                             'scope': self.scope,
                             'ident': user.id
                         }
-        except:
+        except Exception:
             pass
         return None
