@@ -63,15 +63,18 @@ def run_scrapers(keyword='Python', location='Europe'):
     """
     results = []
 
-    try:
-        logger.info("🚀 [On-Demand] Starting WWR Scrape...")
-        _run_scrapy(["wwr"], timeout=60, label="wwr")
-        results.append("WWR")
-    except subprocess.CalledProcessError as e:
-        error_msg = e.stderr.decode(errors='replace') if isinstance(e.stderr, bytes) else (e.stderr or "")
-        logger.error("❌ [On-Demand] WWR Scraper Failed: %s", error_msg)
-    except subprocess.TimeoutExpired:
-        logger.error("⚠️ [On-Demand] WWR Scraper Timed Out")
+    # Fast API-based feeds first — they answer in seconds and refresh
+    # the dataset broadly before the slower keyword-targeted scrape runs.
+    for quick_spider in ["wwr", "remotive", "remoteok"]:
+        try:
+            logger.info("🚀 [On-Demand] Starting %s Scrape...", quick_spider)
+            _run_scrapy([quick_spider], timeout=90, label=quick_spider)
+            results.append(quick_spider)
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr.decode(errors='replace') if isinstance(e.stderr, bytes) else (e.stderr or "")
+            logger.error("❌ [On-Demand] %s Scraper Failed: %s", quick_spider, error_msg)
+        except subprocess.TimeoutExpired:
+            logger.error("⚠️ [On-Demand] %s Scraper Timed Out", quick_spider)
 
     try:
         logger.info("🔍 [On-Demand] Starting LinkedIn Scrape for %s...", keyword)
@@ -115,8 +118,10 @@ def run_bulk_scrape():
 
     run_spider("wwr")
     run_spider("remoteok")
+    run_spider("remotive")
+    run_spider("arbeitnow")
     run_spider("pyjobs")
-    run_spider("themuse")
+    run_spider("themuse", timeout=300)
     run_spider("glassdoor", timeout=600)
 
     tech_stack = ["Python", "JavaScript", "React", "DevOps", "Java"]
