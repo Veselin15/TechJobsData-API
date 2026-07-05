@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block title %}{{ job.title }} at {{ job.company }} | TechJobsData{% endblock %}
-{% block meta_description %}{{ job.title }} at {{ job.company }} in {{ job.location }}. {% if job.salary_min and job.salary_max %}Salary: {{ job.currency|default:"$" }}{{ job.salary_min }}k–{{ job.salary_max }}k. {% endif %}View details and apply now.{% endblock %}
+{% block meta_description %}{{ job.title }} at {{ job.company }} in {{ job.location }}. {% if job.salary_min and job.salary_max %}Salary: {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }}–{{ job.salary_max|intcomma }}. {% endif %}View details and apply now.{% endblock %}
 {% block og_tags %}
 <meta property="og:title" content="{{ job.title }} at {{ job.company }}">
 <meta property="og:description" content="{{ job.title }} position at {{ job.company }} in {{ job.location }}. Apply now on TechJobsData.">
@@ -60,7 +60,7 @@
 
         <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-sm relative overflow-hidden">
             <div class="absolute top-0 left-0 right-0 h-1
-                {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% else %}bg-orange-500{% endif %}"></div>
+                {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% elif job.source == 'Remotive' %}bg-cyan-500{% elif job.source == 'Arbeitnow' %}bg-pink-500{% else %}bg-orange-500{% endif %}"></div>
 
             <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
                 <div>

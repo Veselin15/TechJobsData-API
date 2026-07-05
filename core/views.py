@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -5,7 +7,8 @@ from django.contrib.auth import login
 from django.contrib import messages
 from django.http import HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import F, Q
+from django.utils import timezone
 from rest_framework_api_key.models import APIKey
 
 from .forms import RegisterForm  # Assuming you renamed your form or use the one from before
@@ -63,13 +66,41 @@ def register(request):
 
 # --- 3. Job Board Logic ---
 
+SALARY_OPTIONS = [
+    (30000, '$30k+'),
+    (50000, '$50k+'),
+    (75000, '$75k+'),
+    (100000, '$100k+'),
+    (150000, '$150k+'),
+]
+
+DATE_OPTIONS = [
+    (1, 'Last 24 hours'),
+    (3, 'Last 3 days'),
+    (7, 'Last week'),
+    (14, 'Last 2 weeks'),
+    (30, 'Last month'),
+]
+
+SORT_OPTIONS = [
+    ('newest', 'Newest first'),
+    ('oldest', 'Oldest first'),
+    ('salary_high', 'Highest salary'),
+    ('company', 'Company A–Z'),
+]
+
+
 def job_list(request):
-    query = request.GET.get('q', '')
-    location = request.GET.get('loc', '')
+    query = request.GET.get('q', '').strip()
+    location = request.GET.get('loc', '').strip()
     source = request.GET.get('source', '')
     seniority = request.GET.get('seniority', '')
+    min_salary = request.GET.get('min_salary', '')
+    posted_within = request.GET.get('posted_within', '')
+    remote_only = request.GET.get('remote') == '1'
+    sort = request.GET.get('sort', 'newest')
 
-    jobs = Job.objects.all().order_by('-posted_at')
+    jobs = Job.objects.all()
 
     if query:
         jobs = jobs.filter(
@@ -83,6 +114,25 @@ def job_list(request):
         jobs = jobs.filter(source=source)
     if seniority:
         jobs = jobs.filter(seniority=seniority)
+    if remote_only:
+        jobs = jobs.filter(location__icontains='remote')
+    if min_salary.isdigit():
+        floor = int(min_salary)
+        jobs = jobs.filter(Q(salary_min__gte=floor) | Q(salary_max__gte=floor))
+    if posted_within.isdigit():
+        cutoff = timezone.now().date() - timedelta(days=int(posted_within))
+        jobs = jobs.filter(posted_at__gte=cutoff)
+
+    if sort == 'oldest':
+        jobs = jobs.order_by('posted_at', 'id')
+    elif sort == 'salary_high':
+        jobs = jobs.order_by(F('salary_max').desc(nulls_last=True),
+                             F('salary_min').desc(nulls_last=True), '-posted_at')
+    elif sort == 'company':
+        jobs = jobs.order_by('company', '-posted_at')
+    else:
+        sort = 'newest'
+        jobs = jobs.order_by('-posted_at', '-id')
 
     total_count = jobs.count()
 
@@ -102,16 +152,34 @@ def job_list(request):
         .values_list('seniority', flat=True).distinct().order_by('seniority')
     )
 
+    # Querystring with every active filter except 'page' — pagination links
+    # append their own page number to it.
+    params = request.GET.copy()
+    params.pop('page', None)
+    qs = params.urlencode()
+
+    has_filters = any([source, seniority, min_salary, posted_within, remote_only]) \
+        or sort != 'newest'
+
     context = {
         'page_obj': page_obj,
         'query': query,
         'location': location,
         'source': source,
         'seniority': seniority,
+        'min_salary': min_salary,
+        'posted_within': posted_within,
+        'remote_only': remote_only,
+        'sort': sort,
         'total_count': total_count,
         'saved_job_ids': saved_job_ids,
         'available_sources': available_sources,
         'available_seniorities': available_seniorities,
+        'salary_options': SALARY_OPTIONS,
+        'date_options': DATE_OPTIONS,
+        'sort_options': SORT_OPTIONS,
+        'qs': qs,
+        'has_filters': has_filters,
     }
 
     if request.headers.get('HX-Request'):

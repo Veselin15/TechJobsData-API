@@ -1,17 +1,34 @@
+{% load humanize %}
 <div class="space-y-4" id="job-results-area">
+
+    {% if total_count is not None %}
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
+        <p class="text-sm text-slate-400">
+            <span class="text-white font-semibold">{{ total_count|intcomma }}</span> job{{ total_count|pluralize }} found
+            {% if query %} for <span class="text-indigo-400 font-medium">"{{ query }}"</span>{% endif %}
+            {% if location %} in <span class="text-indigo-400 font-medium">{{ location }}</span>{% endif %}
+            {% if source %} from <span class="text-indigo-400 font-medium">{{ source }}</span>{% endif %}
+            {% if seniority %} &middot; <span class="text-indigo-400 font-medium">{{ seniority }}</span>{% endif %}
+            {% if remote_only %} &middot; <span class="text-indigo-400 font-medium">Remote only</span>{% endif %}
+        </p>
+        {% if page_obj.paginator.num_pages > 1 %}
+        <p class="text-xs text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
 
     {% for job in page_obj %}
     <div class="group relative bg-white/[0.03] hover:bg-white/[0.07] transition-all duration-300 border border-white/5 rounded-2xl overflow-hidden hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5">
 
         <div class="absolute left-0 top-0 bottom-0 w-1.5
-            {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% else %}bg-orange-500{% endif %}">
+            {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% elif job.source == 'Remotive' %}bg-cyan-500{% elif job.source == 'Arbeitnow' %}bg-pink-500{% else %}bg-orange-500{% endif %}">
         </div>
 
         <div class="p-5 sm:p-6 pl-7 sm:pl-8 flex gap-4">
 
             <div class="flex-1 min-w-0">
                 <h3 class="text-lg sm:text-xl font-bold text-white group-hover:text-indigo-300 transition-colors leading-tight mb-2">
-                    <a href="{% url 'job_detail' job.pk %}" class="focus:outline-none">
+                    <a href="{% url 'job_detail' job.id %}" class="focus:outline-none">
                         <span class="absolute inset-0" aria-hidden="true"></span>
                         {{ job.title }}
                     </a>
@@ -25,18 +42,18 @@
                     <span class="hidden sm:inline text-slate-600">&middot;</span>
                     <span class="flex items-center gap-1.5">
                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        {{ job.location }}
+                        {{ job.location|truncatechars:60 }}
                     </span>
                     {% if job.salary_min or job.salary_max %}
                     <span class="hidden sm:inline text-slate-600">&middot;</span>
                     <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        {% if job.salary_min and job.salary_max %}
-                            {{ job.currency|default:"$" }}{{ job.salary_min|floatformat:"0" }}k – {{ job.currency|default:"$" }}{{ job.salary_max|floatformat:"0" }}k
+                        {% if job.salary_min and job.salary_max and job.salary_min != job.salary_max %}
+                            {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }} – {{ job.salary_max|intcomma }}
                         {% elif job.salary_min %}
-                            From {{ job.currency|default:"$" }}{{ job.salary_min|floatformat:"0" }}k
+                            {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }}
                         {% else %}
-                            Up to {{ job.currency|default:"$" }}{{ job.salary_max|floatformat:"0" }}k
+                            Up to {{ job.currency|default:"USD" }} {{ job.salary_max|intcomma }}
                         {% endif %}
                     </span>
                     {% endif %}
@@ -49,10 +66,15 @@
                         </span>
                     {% endif %}
                     {% for skill in job.skills|slice:":5" %}
-                        <span class="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors cursor-default">
+                        <a href="{% url 'job_list' %}?q={{ skill|urlencode }}"
+                           class="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/25 hover:text-indigo-200 transition-colors"
+                           title="Search {{ skill }} jobs">
                             {{ skill }}
-                        </span>
+                        </a>
                     {% endfor %}
+                    {% if job.skills|length > 5 %}
+                        <span class="text-xs text-slate-500">+{{ job.skills|length|add:"-5" }} more</span>
+                    {% endif %}
                 </div>
             </div>
 
@@ -61,6 +83,8 @@
                     <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium border
                         {% if job.source == 'LinkedIn' %}bg-blue-500/10 text-blue-300 border-blue-500/20
                         {% elif job.source == 'Glassdoor' %}bg-green-500/10 text-green-300 border-green-500/20
+                        {% elif job.source == 'Remotive' %}bg-cyan-500/10 text-cyan-300 border-cyan-500/20
+                        {% elif job.source == 'Arbeitnow' %}bg-pink-500/10 text-pink-300 border-pink-500/20
                         {% else %}bg-white/5 text-slate-300 border-white/10{% endif %}">
                         {{ job.source }}
                     </span>
@@ -86,8 +110,9 @@
             </svg>
         </div>
         <h3 class="text-xl font-bold text-white mb-2">No jobs found</h3>
-        <p class="text-slate-400 max-w-md mx-auto mb-8">Try adjusting your search terms or location to find what you're looking for.</p>
+        <p class="text-slate-400 max-w-md mx-auto mb-8">Try adjusting your search terms or removing some filters to see more results.</p>
         <div class="flex flex-wrap justify-center gap-2">
+            <a href="{% url 'job_list' %}" class="px-4 py-2 rounded-lg bg-indigo-600/80 border border-indigo-500/40 text-sm text-white font-semibold hover:bg-indigo-500 transition-all">Clear all filters</a>
             <a href="{% url 'job_list' %}?q=Python" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">Python</a>
             <a href="{% url 'job_list' %}?q=React" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">React</a>
             <a href="{% url 'job_list' %}?q=DevOps" class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 transition-all">DevOps</a>
@@ -96,13 +121,15 @@
     </div>
     {% endfor %}
 
+    {% if page_obj.paginator.num_pages > 1 %}
     <div class="pt-10 pb-4 flex justify-center">
         <nav class="isolate inline-flex -space-x-px rounded-xl shadow-lg shadow-black/20">
             {% if page_obj.has_previous %}
                 <button
-                    hx-get="{% url 'job_list' %}?page={{ page_obj.previous_page_number }}&q={{ query }}&loc={{ location }}&source={{ source }}&seniority={{ seniority }}"
+                    hx-get="{% url 'job_list' %}?{{ qs }}{% if qs %}&{% endif %}page={{ page_obj.previous_page_number }}"
                     hx-target="#job-results-area"
                     hx-swap="outerHTML show:window:top"
+                    hx-push-url="true"
                     class="relative inline-flex items-center rounded-l-xl px-4 py-2.5 text-sm font-semibold text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all">
                     <svg class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     Prev
@@ -115,14 +142,15 @@
             {% endif %}
 
             <span class="relative inline-flex items-center px-5 py-2.5 text-sm font-semibold text-slate-300 bg-slate-800 border-t border-b border-slate-700 min-w-[3rem] justify-center">
-                {{ page_obj.number }}
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
             </span>
 
             {% if page_obj.has_next %}
                 <button
-                    hx-get="{% url 'job_list' %}?page={{ page_obj.next_page_number }}&q={{ query }}&loc={{ location }}&source={{ source }}&seniority={{ seniority }}"
+                    hx-get="{% url 'job_list' %}?{{ qs }}{% if qs %}&{% endif %}page={{ page_obj.next_page_number }}"
                     hx-target="#job-results-area"
                     hx-swap="outerHTML show:window:top"
+                    hx-push-url="true"
                     class="relative inline-flex items-center rounded-r-xl px-4 py-2.5 text-sm font-semibold text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all">
                     Next
                     <svg class="w-5 h-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -135,4 +163,5 @@
             {% endif %}
         </nav>
     </div>
+    {% endif %}
 </div>

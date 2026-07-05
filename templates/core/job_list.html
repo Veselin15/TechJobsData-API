@@ -29,6 +29,8 @@
                   hx-target="#job-results-area"
                   hx-swap="outerHTML show:window:top"
                   hx-include="#search-form"
+                  hx-push-url="true"
+                  hx-indicator="#search-spinner"
                   class="space-y-4">
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -40,7 +42,7 @@
                         </div>
                         <input type="text" name="q" value="{{ query }}"
                                class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
-                               placeholder="Job title, keywords, or company">
+                               placeholder="Job title, skill, or company">
                     </div>
 
                     <div class="md:col-span-5 relative">
@@ -57,13 +59,16 @@
 
                     <div class="md:col-span-2">
                         <button type="submit" class="w-full h-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
+                            <svg id="search-spinner" class="htmx-indicator w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
                             <span>Find Jobs</span>
                         </button>
                     </div>
                 </div>
 
-                {% if available_sources or available_seniorities %}
-                <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-white/5">
+                <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-white/5">
                     <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Filters:</span>
 
                     {% if available_sources %}
@@ -88,29 +93,52 @@
                     </select>
                     {% endif %}
 
-                    {% if source or seniority %}
-                    <a href="{% url 'job_list' %}{% if query %}?q={{ query }}{% endif %}{% if location %}{% if query %}&{% else %}?{% endif %}loc={{ location }}{% endif %}"
-                       class="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">
-                        Clear filters
+                    <select name="posted_within"
+                            onchange="this.form.requestSubmit()"
+                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+                        <option value="">Any Time</option>
+                        {% for days, label in date_options %}
+                            <option value="{{ days }}" {% if posted_within == days|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="min_salary"
+                            onchange="this.form.requestSubmit()"
+                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+                        <option value="">Any Salary</option>
+                        {% for amount, label in salary_options %}
+                            <option value="{{ amount }}" {% if min_salary == amount|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none rounded-lg border border-white/10 bg-white/5 py-1.5 px-3 hover:bg-white/10 transition-all {% if remote_only %}border-indigo-500/50 text-indigo-300 bg-indigo-500/10{% endif %}">
+                        <input type="checkbox" name="remote" value="1" {% if remote_only %}checked{% endif %}
+                               onchange="this.form.requestSubmit()"
+                               class="rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 w-4 h-4">
+                        Remote only
+                    </label>
+
+                    <div class="flex items-center gap-2 sm:ml-auto">
+                        <label class="text-xs text-slate-500 font-semibold uppercase tracking-wider" for="sort-select">Sort:</label>
+                        <select name="sort" id="sort-select"
+                                onchange="this.form.requestSubmit()"
+                                class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+                            {% for value, label in sort_options %}
+                                <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if has_filters %}
+                    <a href="{% url 'job_list' %}{% if query %}?q={{ query|urlencode }}{% endif %}{% if location %}{% if query %}&{% else %}?{% endif %}loc={{ location|urlencode }}{% endif %}"
+                       class="text-xs text-red-400 hover:text-red-300 font-medium transition-colors whitespace-nowrap">
+                        &times; Clear filters
                     </a>
                     {% endif %}
                 </div>
-                {% endif %}
             </form>
         </div>
     </div>
-
-    {% if total_count is not None %}
-    <div class="flex items-center justify-between mb-6 px-1">
-        <p class="text-sm text-slate-400">
-            <span class="text-white font-semibold">{{ total_count|default:"0" }}</span> job{{ total_count|pluralize }} found
-            {% if query %} for <span class="text-indigo-400 font-medium">"{{ query }}"</span>{% endif %}
-            {% if location %} in <span class="text-indigo-400 font-medium">{{ location }}</span>{% endif %}
-            {% if source %} from <span class="text-indigo-400 font-medium">{{ source }}</span>{% endif %}
-            {% if seniority %} &middot; <span class="text-indigo-400 font-medium">{{ seniority }}</span>{% endif %}
-        </p>
-    </div>
-    {% endif %}
 
     <div class="mb-8">
         {% include 'core/partials/adsense_unit.html' with slot=adsense_slots.banner min_height='90' %}
