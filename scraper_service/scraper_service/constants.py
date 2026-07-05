@@ -30,10 +30,34 @@ TECH_KEYWORDS = [
     "Matplotlib", "Seaborn", "OpenCV", "Hugging Face", "LLM", "Generative AI", "Spark", "Hadoop",
     "Airflow", "Databricks", "Snowflake", "BigQuery", "Redshift", "Tableau", "Power BI",
 
+    # Messaging & Streaming
+    "Kafka", "RabbitMQ", "Celery", "ActiveMQ", "SQS", "Pub/Sub", "NATS",
+
+    # Testing & Automation
+    "Selenium", "Playwright", "Cypress", "Jest", "Pytest", "JUnit", "Mocha",
+    "Scrapy", "Puppeteer",
+
+    # Frontend Tooling
+    "Vite", "Webpack", "Redux", "Zustand", "Remix", "Astro", "Storybook",
+    "Deno", "Bun", "Electron",
+
+    # AI Ecosystem (modern)
+    "LangChain", "OpenAI", "Anthropic", "RAG", "MLOps", "Vector Database",
+    "Pinecone", "Weaviate", "MLflow", "Kubeflow", "Ray", "ETL",
+
+    # Blockchain & Games
+    "Solidity", "Web3", "Blockchain", "Ethereum", "Unity", "Unreal Engine", "Godot",
+
+    # Enterprise & Platforms
+    "Salesforce", "SAP", "ServiceNow", "Shopify", "WordPress", "Magento", "Stripe",
+    "Vercel", "Netlify", "Heroku", "DigitalOcean", "Cloudflare",
+
     # Tools & Concepts
     "Git", "GitHub", "GitLab", "Bitbucket", "Jira", "Confluence", "Slack", "Trello", "Asana",
     "Agile", "Scrum", "Kanban", "TDD", "BDD", "CI/CD", "REST API", "GraphQL", "gRPC",
-    "WebSockets", "Microservices", "Serverless", "Linux", "Unix", "Ubuntu", "CentOS"
+    "WebSockets", "Microservices", "Serverless", "Linux", "Unix", "Ubuntu", "CentOS",
+    "OAuth", "SSO", "Cybersecurity", "Penetration Testing", "SRE", "Observability",
+    "OpenTelemetry", "Vault", "Istio", "Helm", "ArgoCD"
 ]
 
 # 2. Negation Phrases (Phrases that indicate a skill is NOT required)
@@ -96,8 +120,8 @@ SALARY_HINTS = [
 
 # 6. Period Multipliers (To convert everything to Annual)
 SALARY_MULTIPLIERS = {
-    'monthly': [r'per month', r'/month', r'/mo\b', r'monthly', r'p\.m\.'],
-    'yearly': [r'per year', r'/year', r'/yr\b', r'yearly', r'annually', r'p\.a\.', r'per annum'],
-    'hourly': [r'per hour', r'/hour', r'/hr\b', r'hourly', r'p\.h\.'],
-    'daily': [r'per day', r'/day', r'daily']
+    'monthly': [r'per month', r'/\s*month', r'/\s*mo\b', r'monthly', r'p\.m\.'],
+    'yearly': [r'per year', r'/\s*year', r'/\s*yr\b', r'yearly', r'annually', r'p\.a\.', r'per annum'],
+    'hourly': [r'per hour', r'/\s*hour', r'/\s*hr\b', r'hourly', r'p\.h\.', r'an hour'],
+    'daily': [r'per day', r'/\s*day', r'daily']
 }

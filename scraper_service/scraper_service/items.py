@@ -9,6 +9,7 @@ class JobItem(scrapy.Item):
     description = scrapy.Field()
     source = scrapy.Field()
     skills = scrapy.Field()
+    seniority = scrapy.Field()
     salary_min = scrapy.Field()
     salary_max = scrapy.Field()
     currency = scrapy.Field()

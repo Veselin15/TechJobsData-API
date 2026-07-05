@@ -5,7 +5,7 @@ from twisted.internet import threads
 from scrapy.exceptions import DropItem
 from jobs.models import Job
 
-from .utils import parse_salary, extract_skills, extract_seniority
+from .utils import parse_salary, extract_skills, extract_seniority, clean_html_text
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +33,41 @@ class ScraperServicePipeline:
         if not url:
             return None
 
-        title = item.get('title') or "Unknown Title"
-        company = item.get('company') or "Unknown Company"
-        description = item.get('description') or ""
-        location = item.get('location') or "Remote"
+        title = (item.get('title') or "Unknown Title").strip()
+        company = (item.get('company') or "Unknown Company").strip()
+        location = (item.get('location') or "Remote").strip()
         source = item.get('source') or "Unknown"
+
+        # Normalize HTML descriptions to plain text (RemoteOK/Remotive/
+        # Glassdoor/Indeed hand us raw HTML fragments)
+        description = item.get('description') or ""
+        if '<' in description and '>' in description:
+            description = clean_html_text(description)
 
         text_to_scan = f"{title} {company} {description}"
 
-        min_sal, max_sal, curr = parse_salary(text_to_scan)
-        skills_found = extract_skills(text_to_scan)
-        seniority_level = extract_seniority(title, description)
+        # Salary: trust structured data from the source; parse text otherwise
+        min_sal = item.get('salary_min')
+        max_sal = item.get('salary_max')
+        curr = item.get('currency')
+        if min_sal is None and max_sal is None:
+            min_sal, max_sal, curr = parse_salary(text_to_scan)
+        elif not curr:
+            curr = "USD"
+
+        # Skills: union of source-provided tags and our own extraction,
+        # deduped case-insensitively (our canonical capitalization wins)
+        merged_skills = {
+            s.strip().lower(): s.strip()
+            for s in (item.get('skills') or [])
+            if isinstance(s, str) and s.strip()
+        }
+        for s in extract_skills(text_to_scan):
+            merged_skills[s.lower()] = s
+        skills_found = sorted(merged_skills.values(), key=str.lower)
+
+        # Seniority: source-provided value wins over heuristics
+        seniority_level = item.get('seniority') or extract_seniority(title, description)
 
         job, created = Job.objects.update_or_create(
             url=url[:2000],
