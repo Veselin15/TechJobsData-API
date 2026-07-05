@@ -24,12 +24,15 @@ import os
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-for-localhost-12345')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Set DJANGO_DEBUG=False in the production environment.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
 else:
-    ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "techjobsdata.com").split(",")
+    ALLOWED_HOSTS = os.environ.get(
+        "ALLOWED_HOSTS", "techjobsdata.com,www.techjobsdata.com"
+    ).split(",")
 # Use the environment variable if present, otherwise default to production
 SITE_URL = os.environ.get('SITE_URL', 'https://techjobsdata.com')
 # Application definition
@@ -41,7 +44,10 @@ if DEBUG:
         "https://www.techjobsdata.com"
     ]
 else:
-    CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://techjobsdata.com").split(",")
+    CSRF_TRUSTED_ORIGINS = os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://techjobsdata.com,https://www.techjobsdata.com"
+    ).split(",")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -193,9 +199,14 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'TechJobsData API',  # <--- Changed from 'Remote Jobs API'
-    'DESCRIPTION': 'A specialized API for finding remote tech jobs on LinkedIn.',
-    'VERSION': '1.0.0',
+    'TITLE': 'TechJobsData API',
+    'DESCRIPTION': (
+        'Real-time tech job data aggregated from LinkedIn, Glassdoor, RemoteOK, '
+        'WeWorkRemotely, Remotive, Arbeitnow, The Muse and more. '
+        'Supports full-text search, rich filtering (salary, seniority, skills, '
+        'posting date, remote), ordering, per-job detail and aggregated stats.'
+    ),
+    'VERSION': '2.0.0',
 }
 CELERY_BEAT_SCHEDULE = {
     # Run the BIG scraper at 8:00 AM
@@ -226,15 +237,9 @@ STRIPE_PRICE_ID_BUSINESS = os.environ.get('STRIPE_PRICE_ID_BUSINESS', 'price_YOU
 # --- EMAIL CONFIGURATION (Dev Mode) ---
 # This prints emails to the console/logs. Change to 'smtp' for production.
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'support@techjobsdata.com'
-
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
+DEFAULT_FROM_EMAIL = 'TechJobsData <noreply@techjobsdata.com>'
 
 SITE_ID = 1
-
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'TechJobsData <noreply@techjobsdata.com>'
 
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'index'
@@ -264,7 +269,6 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
-ACCOUNT_LOGOUT_ON_GET = True
 
 # --- GOOGLE ADSENSE ---
 ADSENSE_CLIENT_ID = 'ca-pub-1995258824270781'

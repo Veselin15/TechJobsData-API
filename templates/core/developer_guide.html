@@ -311,6 +311,58 @@ fetchJobs();</pre>
                     </div>
                 </div>
 
+                <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-8 shadow-xl backdrop-blur-sm">
+                    <h3 class="text-xl font-bold text-white mb-4">Endpoints & Query Parameters</h3>
+                    <p class="text-slate-400 mb-6">
+                        All list parameters can be combined. Dates use <code class="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded">YYYY-MM-DD</code>;
+                        salaries are annualized integers.
+                    </p>
+
+                    <div class="space-y-2 mb-8 font-mono text-sm">
+                        <div class="flex flex-wrap items-center gap-3 bg-white/5 border border-white/5 rounded-lg px-4 py-2.5">
+                            <span class="text-emerald-400 font-bold text-xs">GET</span>
+                            <span class="text-slate-200">/api/v1/jobs/</span>
+                            <span class="text-slate-500 font-sans text-xs ml-auto">Search &amp; filter job listings</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 bg-white/5 border border-white/5 rounded-lg px-4 py-2.5">
+                            <span class="text-emerald-400 font-bold text-xs">GET</span>
+                            <span class="text-slate-200">/api/v1/jobs/{id}/</span>
+                            <span class="text-slate-500 font-sans text-xs ml-auto">Retrieve a single job</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 bg-white/5 border border-white/5 rounded-lg px-4 py-2.5">
+                            <span class="text-emerald-400 font-bold text-xs">GET</span>
+                            <span class="text-slate-200">/api/v1/jobs/stats/</span>
+                            <span class="text-slate-500 font-sans text-xs ml-auto">Aggregated counts, top skills &amp; salary stats</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto code-scrollbar">
+                        <table class="w-full text-sm text-left">
+                            <thead>
+                                <tr class="border-b border-white/10 text-xs uppercase tracking-wider text-slate-500">
+                                    <th class="py-2.5 pr-4 font-semibold">Parameter</th>
+                                    <th class="py-2.5 pr-4 font-semibold">Example</th>
+                                    <th class="py-2.5 font-semibold">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5 text-slate-400">
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">search</td><td class="py-2.5 pr-4 font-mono text-cyan-300">"python developer" -intern</td><td class="py-2.5">Full-text search (title, company, skills, description). Supports quotes, OR, and -exclusion.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">skills</td><td class="py-2.5 pr-4 font-mono text-cyan-300">Python,Docker</td><td class="py-2.5">Exact skill match; comma-separated values must ALL be present.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">title / company / location</td><td class="py-2.5 pr-4 font-mono text-cyan-300">location=Berlin</td><td class="py-2.5">Case-insensitive substring match.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">seniority</td><td class="py-2.5 pr-4 font-mono text-cyan-300">Senior</td><td class="py-2.5">Junior, Mid-Level, Senior, or Lead.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">source</td><td class="py-2.5 pr-4 font-mono text-cyan-300">LinkedIn</td><td class="py-2.5">Filter by data source.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">salary_min / salary_max</td><td class="py-2.5 pr-4 font-mono text-cyan-300">salary_min=80000</td><td class="py-2.5">Annual salary floor / ceiling.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">has_salary</td><td class="py-2.5 pr-4 font-mono text-cyan-300">true</td><td class="py-2.5">Only jobs with (or without) parsed salary data.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">remote</td><td class="py-2.5 pr-4 font-mono text-cyan-300">true</td><td class="py-2.5">Only remote (or only on-site) positions.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">posted_within</td><td class="py-2.5 pr-4 font-mono text-cyan-300">7</td><td class="py-2.5">Jobs posted in the last N days.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">posted_after / posted_before</td><td class="py-2.5 pr-4 font-mono text-cyan-300">2026-07-01</td><td class="py-2.5">Explicit posting-date bounds.</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">ordering</td><td class="py-2.5 pr-4 font-mono text-cyan-300">-salary_max</td><td class="py-2.5">posted_at, salary_min, salary_max, created_at (prefix with - for descending).</td></tr>
+                                <tr><td class="py-2.5 pr-4 font-mono text-indigo-300">page / page_size</td><td class="py-2.5 pr-4 font-mono text-cyan-300">page_size=50</td><td class="py-2.5">Pagination (max page_size: 50).</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>

@@ -7,8 +7,8 @@ Built with **Django**, **Scrapy**, and **Celery**, it features a sophisticated s
 ## 🚀 Features
 
 * **Real-Time Scraping**: On-demand and scheduled scraping using **Scrapy** and **Celery**.
-* **Multi-Source Aggregation**: Supports **LinkedIn, Glassdoor, Indeed, RemoteOK, WeWorkRemotely, The Muse, and PyJobs**.
-* **REST API**: Fully documented API using **Django REST Framework** and **OpenAPI (Swagger)**.
+* **Multi-Source Aggregation**: Supports **LinkedIn, Glassdoor, Indeed, RemoteOK, WeWorkRemotely, Remotive, Arbeitnow, The Muse, and PyJobs**.
+* **REST API**: Fully documented API using **Django REST Framework** and **OpenAPI (Swagger)** — full-text search (websearch syntax), rich filters (salary range, seniority, skills, posting date, remote-only), ordering, single-job detail (`/api/v1/jobs/{id}/`) and aggregated stats (`/api/v1/jobs/stats/`).
 * **Smart Throttling**: 3-Tier rate limiting system based on API Keys:
   * **Free**: 20 requests/day
   * **Pro**: 1,000 requests/day
