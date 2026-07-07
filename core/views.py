@@ -22,8 +22,24 @@ from jobs.models import Job
 
 def index(request):
     """The Landing Page (Public)"""
-    job_count = Job.objects.count()
-    return render(request, 'core/index.html', {'job_count': job_count})
+    stats = cache.get('homepage_stats_v1')
+    if stats is None:
+        week_ago = timezone.now().date() - timedelta(days=7)
+        skill_counter = Counter()
+        for skills in Job.objects.exclude(skills=[]).values_list('skills', flat=True):
+            skill_counter.update(s for s in skills if s)
+        stats = {
+            'job_count': Job.objects.count(),
+            'new_this_week': Job.objects.filter(posted_at__gte=week_ago).count(),
+            'company_count': Job.objects.values('company').distinct().count(),
+            'top_categories': list(
+                Job.objects.exclude(category='').exclude(category='Other')
+                .values('category').annotate(n=Count('id')).order_by('-n')[:8]
+            ),
+            'top_skills': [name for name, _ in skill_counter.most_common(12)],
+        }
+        cache.set('homepage_stats_v1', stats, 60 * 60)
+    return render(request, 'core/index.html', stats)
 
 
 def developer_guide(request):

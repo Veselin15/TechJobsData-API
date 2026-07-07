@@ -23,10 +23,28 @@
                 Tech Jobs Data API
             </h1>
 
-            <p class="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed px-4">
+            <p class="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed px-4">
                 Stop parsing HTML. Get structured tech job listings from LinkedIn, Glassdoor, and more with a single
                 REST API call.
             </p>
+
+            <form action="{% url 'job_list' %}" method="get"
+                  class="max-w-xl mx-auto mb-10 px-4 flex gap-2">
+                <div class="relative flex-grow">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <input type="text" name="q"
+                           class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base backdrop-blur-sm transition-all hover:bg-white/10"
+                           placeholder="Try Python, React, DevOps…">
+                </div>
+                <button type="submit"
+                        class="px-5 sm:px-7 py-3.5 bg-white/10 border border-white/10 hover:bg-white/20 hover:border-white/20 text-white font-bold rounded-xl transition-all whitespace-nowrap">
+                    Search Jobs
+                </button>
+            </form>
 
             <div class="flex flex-col sm:flex-row justify-center gap-4 px-4">
                 {% if user.is_authenticated %}
@@ -85,6 +103,52 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {% include 'core/partials/adsense_unit.html' with slot=adsense_slots.banner min_height='90' %}
     </div>
+
+    {% if top_categories or top_skills %}
+    <section class="py-20 border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-white sm:text-4xl">Explore the Live Market</h2>
+                <p class="mt-4 text-slate-400 max-w-2xl mx-auto">
+                    {{ new_this_week|intcomma }} new listings this week from {{ company_count|intcomma }} companies —
+                    every number below links straight into the live data.
+                </p>
+            </div>
+
+            {% if top_categories %}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                {% for cat in top_categories %}
+                <a href="{% url 'job_list' %}?category={{ cat.category|urlencode }}"
+                   class="group p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-indigo-500/30 transition-all hover:-translate-y-0.5">
+                    <p class="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">{{ cat.category }}</p>
+                    <p class="text-sm text-slate-500 mt-1">{{ cat.n|intcomma }} open role{{ cat.n|pluralize }}</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if top_skills %}
+            <div class="flex flex-wrap justify-center items-center gap-2 mb-10">
+                <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider mr-1">Trending skills:</span>
+                {% for skill in top_skills %}
+                <a href="{% url 'job_list' %}?q={{ skill|urlencode }}"
+                   class="inline-flex items-center rounded-full bg-indigo-500/10 px-3.5 py-1.5 text-sm font-medium text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/25 hover:text-indigo-200 transition-colors">
+                    {{ skill }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="text-center">
+                <a href="{% url 'insights' %}"
+                   class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+                    See full market insights — salaries, demand and trends
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     <section class="py-20 lg:py-32 border-t border-white/5 bg-white/[0.02]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
