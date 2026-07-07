@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}About TechJobsData — How We Collect and Normalize Tech Job Data{% endblock %}
+{% block meta_description %}Learn who is behind TechJobsData, how we aggregate tech job listings from {{ source_count }} sources, and how our normalization pipeline extracts skills, salaries and seniority.{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 sm:py-20 px-4">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">About TechJobsData</h1>
+
+    <div class="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed space-y-6">
+        <p>
+            TechJobsData is an independent tech-job data platform based in Dobrich, Bulgaria. We continuously
+            collect job listings for software engineers, data scientists, DevOps engineers and other technology
+            roles from {{ source_count }} public job platforms, clean and normalize them into a single consistent
+            schema, and make the result available in two ways: a free, searchable
+            <a href="{% url 'job_list' %}" class="text-indigo-400 hover:text-indigo-300">job board</a> for job
+            seekers, and a documented <a href="{% url 'developer_guide' %}" class="text-indigo-400 hover:text-indigo-300">REST API</a>
+            for developers who want to build on top of the data.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">Why we built this</h2>
+        <p>
+            Tech job listings are scattered across dozens of boards, each with its own format, its own way of
+            (not) stating the salary, and its own idea of what "senior" means. Comparing opportunities — or
+            analyzing the market as a whole — means reading the same information in ten different shapes.
+            We built TechJobsData to solve that: one dataset, one schema, with the messy parts already cleaned up.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">How our pipeline works</h2>
+        <p>
+            Twice a day, our crawlers fetch new listings from public sources such as RemoteOK, Remotive,
+            Arbeitnow, The Muse and WeWorkRemotely. Every listing then goes through a normalization pipeline
+            that adds structure the original posting usually doesn't have:
+        </p>
+        <ul class="list-disc pl-6 space-y-2">
+            <li>
+                <strong class="text-white">Skill extraction.</strong> We parse each title and description against a
+                curated dictionary of technologies (languages, frameworks, databases, cloud platforms) and tag the
+                listing with the skills it actually requires — so you can search for "Rust" or "Kubernetes" across
+                every source at once.
+            </li>
+            <li>
+                <strong class="text-white">Salary parsing.</strong> Salaries appear as "$120k–$150k", "€65.000 p.a."
+                or "£400/day". We parse these formats, convert periods to yearly figures, and store a comparable
+                minimum and maximum with its currency.
+            </li>
+            <li>
+                <strong class="text-white">Seniority detection.</strong> We classify listings into Junior, Mid,
+                Senior and Lead levels based on the title and description, making experience-level filtering
+                possible across sources that don't offer it themselves.
+            </li>
+            <li>
+                <strong class="text-white">Deduplication and freshness.</strong> Each listing is stored once by its
+                canonical URL, and stale listings are removed daily so the {{ job_count|intcomma }} jobs currently
+                in the index reflect the live market.
+            </li>
+        </ul>
+
+        <h2 class="text-2xl font-bold text-white pt-4">What we do with the data</h2>
+        <p>
+            Beyond search, we publish free
+            <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300">market insights</a>
+            computed from the full dataset: which skills are most in demand right now, how salaries differ by
+            seniority level, what share of listings are remote, and which companies are hiring the most. These
+            statistics are recalculated continuously from our own database — they are not available anywhere else,
+            because no single source board sees the whole picture.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">Attribution and fair use</h2>
+        <p>
+            Every listing on TechJobsData links back to the original posting, and applying always happens on the
+            source platform — we never intercept applications or charge job seekers anything. We aggregate only
+            publicly available listings, respect the technical and legal boundaries of the platforms we index,
+            and remove listings promptly when a source takes them down.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">Who we are</h2>
+        <p>
+            TechJobsData is built and operated by a small engineering team in Bulgaria. We fund the project
+            through API subscriptions and advertising on the site, which keeps the job board and market insights
+            free for everyone. If you have questions, feedback or a partnership idea, we'd love to hear from you —
+            see the <a href="{% url 'contact' %}" class="text-indigo-400 hover:text-indigo-300">contact page</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}

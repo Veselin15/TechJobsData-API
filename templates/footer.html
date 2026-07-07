@@ -23,6 +23,7 @@
                 <h3 class="text-sm font-semibold text-white tracking-wider uppercase">Product</h3>
                 <ul class="mt-4 space-y-3">
                     <li><a href="{% url 'job_list' %}" class="text-sm hover:text-indigo-400 transition-colors">Browse Jobs</a></li>
+                    <li><a href="{% url 'insights' %}" class="text-sm hover:text-indigo-400 transition-colors">Market Insights</a></li>
                     <li><a href="{% url 'developer_guide' %}" class="text-sm hover:text-indigo-400 transition-colors">Documentation</a></li>
                     <li>
                         <button data-modal-target="pricing-modal" data-modal-toggle="pricing-modal" class="text-sm hover:text-indigo-400 transition-colors">Pricing</button>
@@ -31,17 +32,19 @@
             </div>
 
             <div>
+                <h3 class="text-sm font-semibold text-white tracking-wider uppercase">Company</h3>
+                <ul class="mt-4 space-y-3">
+                    <li><a href="{% url 'about' %}" class="text-sm hover:text-indigo-400 transition-colors">About Us</a></li>
+                    <li><a href="{% url 'contact' %}" class="text-sm hover:text-indigo-400 transition-colors">Contact</a></li>
+                </ul>
+            </div>
+
+            <div>
                 <h3 class="text-sm font-semibold text-white tracking-wider uppercase">Legal</h3>
                 <ul class="mt-4 space-y-3">
-                    <li>
-                        <button data-modal-target="privacy-modal" data-modal-toggle="privacy-modal" class="text-sm hover:text-indigo-400 transition-colors">Privacy Policy</button>
-                    </li>
-                    <li>
-                        <button data-modal-target="terms-modal" data-modal-toggle="terms-modal" class="text-sm hover:text-indigo-400 transition-colors">Terms of Service</button>
-                    </li>
-                    <li>
-                        <button data-modal-target="terms-modal" data-modal-toggle="terms-modal" class="text-sm hover:text-indigo-400 transition-colors">Refund Policy</button>
-                    </li>
+                    <li><a href="{% url 'privacy' %}" class="text-sm hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
+                    <li><a href="{% url 'terms' %}" class="text-sm hover:text-indigo-400 transition-colors">Terms of Service</a></li>
+                    <li><a href="{% url 'terms' %}#refunds" class="text-sm hover:text-indigo-400 transition-colors">Refund Policy</a></li>
                 </ul>
             </div>
 

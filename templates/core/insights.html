@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Tech Job Market Insights — Skills, Salaries & Remote Trends | TechJobsData{% endblock %}
+{% block meta_description %}Live tech job market statistics computed from {{ stats.total_jobs|intcomma }} listings: most in-demand skills, average salaries by seniority, remote work share and top hiring companies.{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 sm:py-20 px-4">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white mb-4">Tech Job Market Insights</h1>
+
+    {% if not stats %}
+        <p class="text-slate-400">Our dataset is currently being rebuilt. Check back in a few hours.</p>
+    {% else %}
+    <p class="text-slate-300 leading-relaxed mb-2 max-w-3xl">
+        The statistics on this page are computed directly from the {{ stats.total_jobs|intcomma }} live job
+        listings in our index — aggregated from multiple job platforms, normalized into one schema, and
+        recalculated throughout the day. Because no single job board sees the whole market, these cross-source
+        numbers give a picture you won't find on any individual platform.
+    </p>
+    <p class="text-xs text-slate-500 mb-12">Last recalculated {{ stats.generated_at|date:"M d, Y H:i" }} UTC · Methodology explained on the <a href="{% url 'about' %}" class="text-indigo-400 hover:text-indigo-300">about page</a></p>
+
+    {# --- Headline numbers --- #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
+            <p class="text-2xl sm:text-3xl font-bold text-white">{{ stats.total_jobs|intcomma }}</p>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mt-1">Live listings</p>
+        </div>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
+            <p class="text-2xl sm:text-3xl font-bold text-emerald-400">{{ stats.new_this_week|intcomma }}</p>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mt-1">Posted this week</p>
+        </div>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
+            <p class="text-2xl sm:text-3xl font-bold text-cyan-400">{{ stats.remote_share }}%</p>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mt-1">Remote roles</p>
+        </div>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
+            <p class="text-2xl sm:text-3xl font-bold text-indigo-400">{{ stats.salary_share }}%</p>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mt-1">Disclose salary</p>
+        </div>
+    </div>
+
+    {# --- Skill demand --- #}
+    <section class="mb-14">
+        <h2 class="text-2xl font-bold text-white mb-3">Most in-demand skills right now</h2>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-3xl">
+            We extract technology tags from every listing's title and description. The chart below counts how
+            often each skill appears across all current listings — a direct measure of what employers are hiring
+            for this week, not a survey or an estimate. Click any skill on the
+            <a href="{% url 'job_list' %}" class="text-indigo-400 hover:text-indigo-300">job board</a> to see the
+            matching openings.
+        </p>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 space-y-3">
+            {% for skill in stats.top_skills %}
+            <div class="flex items-center gap-3">
+                <a href="{% url 'job_list' %}?q={{ skill.name|urlencode }}"
+                   class="w-28 shrink-0 text-sm text-slate-300 hover:text-indigo-400 truncate text-right">{{ skill.name }}</a>
+                <div class="flex-grow bg-white/5 rounded-full h-3 overflow-hidden">
+                    <div class="h-3 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400" style="width: {{ skill.pct }}%"></div>
+                </div>
+                <span class="w-14 shrink-0 text-xs text-slate-500">{{ skill.count|intcomma }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# --- Salaries by seniority --- #}
+    {% if stats.salary_by_seniority %}
+    <section class="mb-14">
+        <h2 class="text-2xl font-bold text-white mb-3">Average advertised salary by seniority</h2>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-3xl">
+            Only {{ stats.salary_share }}% of tech listings state a salary, which makes the ones that do
+            especially useful as a market signal. For USD-denominated listings we parse the advertised range,
+            convert it to a yearly figure, and average it per detected seniority level. Treat these as advertised
+            ranges, not total compensation — equity and bonuses are usually excluded.
+        </p>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-white/10 text-left text-xs text-slate-500 uppercase tracking-wider">
+                        <th class="px-6 py-4">Seniority</th>
+                        <th class="px-6 py-4">Avg. range (USD, yearly)</th>
+                        <th class="px-6 py-4 text-right">Listings with salary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stats.salary_by_seniority %}
+                    <tr class="border-b border-white/5 last:border-0">
+                        <td class="px-6 py-4 font-semibold text-white">{{ row.seniority }}</td>
+                        <td class="px-6 py-4 text-emerald-400">
+                            {% if row.avg_min %}${{ row.avg_min|floatformat:0|intcomma }}{% else %}—{% endif %}
+                            –
+                            {% if row.avg_max %}${{ row.avg_max|floatformat:0|intcomma }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right text-slate-400">{{ row.n|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {# --- Seniority mix --- #}
+    {% if stats.seniority_mix %}
+    <section class="mb-14">
+        <h2 class="text-2xl font-bold text-white mb-3">Who is the market hiring?</h2>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-3xl">
+            The experience-level mix of current listings. A market tilted toward senior roles typically signals
+            teams optimizing for immediate output; a growing junior share signals confidence to invest in
+            training. Where a listing doesn't state a level, our classifier infers it from the title and
+            description; listings we can't classify are excluded here.
+        </p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {% for row in stats.seniority_mix %}
+            <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-center">
+                <p class="text-xl font-bold text-white">{{ row.n|intcomma }}</p>
+                <p class="text-xs text-slate-500 uppercase tracking-wider mt-1">{{ row.seniority }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# --- Top companies --- #}
+    {% if stats.top_companies %}
+    <section class="mb-14">
+        <h2 class="text-2xl font-bold text-white mb-3">Companies hiring the most</h2>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-3xl">
+            The employers with the most open tech positions across all sources we track. Heavy posting volume can
+            mean genuine growth — or high turnover — so it's a starting point for research, not a verdict.
+        </p>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+            <ol class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                {% for row in stats.top_companies %}
+                <li class="flex items-center justify-between text-sm border-b border-white/5 pb-2">
+                    <a href="{% url 'job_list' %}?q={{ row.company|urlencode }}"
+                       class="text-slate-300 hover:text-indigo-400 truncate pr-4">{{ forloop.counter }}. {{ row.company }}</a>
+                    <span class="text-slate-500 shrink-0">{{ row.n }} open</span>
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+    </section>
+    {% endif %}
+
+    {# --- Sources --- #}
+    <section class="mb-14">
+        <h2 class="text-2xl font-bold text-white mb-3">Where the listings come from</h2>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-3xl">
+            Listing volume per source platform in our current index. Every listing links back to its original
+            posting, and applications always happen on the source site.
+        </p>
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 space-y-3">
+            {% for row in stats.by_source %}
+            <div class="flex items-center gap-3">
+                <span class="w-28 shrink-0 text-sm text-slate-300 truncate text-right">{{ row.source }}</span>
+                <div class="flex-grow bg-white/5 rounded-full h-3 overflow-hidden">
+                    <div class="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400" style="width: {{ row.pct }}%"></div>
+                </div>
+                <span class="w-14 shrink-0 text-xs text-slate-500">{{ row.n|intcomma }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="mb-14">
+        {% include 'core/partials/adsense_unit.html' with slot=adsense_slots.banner min_height='90' %}
+    </div>
+
+    {# --- Reading the numbers --- #}
+    <section class="mb-6">
+        <h2 class="text-2xl font-bold text-white mb-3">How to read these numbers</h2>
+        <div class="text-slate-400 text-sm leading-relaxed space-y-4 max-w-3xl">
+            <p>
+                <strong class="text-slate-200">Skill counts measure demand, not difficulty.</strong> A skill can
+                rank high because it's genuinely hot or simply because it's foundational — SQL and Git appear in
+                listings of every level. When planning what to learn next, compare a skill's count against the
+                salary of the roles that require it, not just its raw popularity.
+            </p>
+            <p>
+                <strong class="text-slate-200">Remote share depends on the sources.</strong> Several of the boards
+                we index specialize in remote work, so our remote percentage runs higher than the overall job
+                market. It is best used to track direction over time rather than as an absolute market-wide figure.
+            </p>
+            <p>
+                <strong class="text-slate-200">Salary averages hide wide ranges.</strong> A "Senior" average blends
+                a Bulgarian startup with a Silicon Valley scale-up. Use the seniority averages to compare levels
+                against each other, and check individual listings for figures relevant to your region.
+            </p>
+            <p>
+                Want to run your own analysis? The entire dataset behind this page is available through our
+                <a href="{% url 'developer_guide' %}" class="text-indigo-400 hover:text-indigo-300">REST API</a>,
+                including a free tier — the <code class="text-cyan-300">/api/v1/jobs/stats/</code> endpoint returns
+                these aggregates as JSON.
+            </p>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

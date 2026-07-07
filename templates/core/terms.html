@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Terms of Service | TechJobsData{% endblock %}
+{% block meta_description %}The terms that govern use of the TechJobsData job board and API: acceptable use, subscription plans, refunds, data accuracy and liability.{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 sm:py-20 px-4">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">Terms of Service</h1>
+    <p class="text-sm text-slate-500 mb-10">Last updated: July 7, 2026</p>
+
+    <div class="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed space-y-6">
+        <p>
+            These terms govern your use of techjobsdata.com and the TechJobsData API, operated by TechJobsData
+            Inc., Dobrotitsa 34 D, Dobrich 9300, Bulgaria ("TechJobsData", "we", "us"). By using the site or the
+            API you agree to these terms.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">1. The service</h2>
+        <p>
+            TechJobsData aggregates publicly available tech job listings, normalizes them, and provides access to
+            the resulting dataset through a web job board (free) and a REST API (free and paid tiers). Job
+            applications always take place on the original source platform; we are not a recruitment agency and
+            are not a party to any employment relationship.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">2. Accounts and API keys</h2>
+        <ul class="list-disc pl-6 space-y-2">
+            <li>You must provide a valid email address to register. You are responsible for keeping your credentials and API keys confidential.</li>
+            <li>API keys are personal to your account and may not be shared, resold or published.</li>
+            <li>We may suspend accounts that attempt to bypass rate limits, share keys, or otherwise abuse the service.</li>
+        </ul>
+
+        <h2 class="text-2xl font-bold text-white pt-4">3. Plans and rate limits</h2>
+        <ul class="list-disc pl-6 space-y-2">
+            <li><strong class="text-white">Hobbyist (free):</strong> 20 API requests per day, non-commercial use.</li>
+            <li><strong class="text-white">Indie Hacker (€10/month):</strong> 1,000 API requests per day, commercial use permitted.</li>
+            <li><strong class="text-white">Business (€49/month):</strong> 10,000 API requests per day, commercial use permitted, priority support.</li>
+        </ul>
+        <p>
+            Subscriptions are billed monthly through Stripe and renew automatically. You can cancel at any time
+            from your dashboard; access continues until the end of the paid billing period.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4" id="refunds">4. Refund policy</h2>
+        <p>
+            First-time subscribers may request a full refund within 7 days of their first payment if the API does
+            not meet their expectations — email
+            <a href="mailto:support@techjobsdata.com" class="text-indigo-400 hover:text-indigo-300">support@techjobsdata.com</a>.
+            After 7 days, and for renewal payments, refunds are generally not offered, except where a prolonged
+            technical failure on our side prevented you from using the service. Statutory consumer rights are
+            unaffected.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">5. Acceptable use</h2>
+        <p>You agree not to:</p>
+        <ul class="list-disc pl-6 space-y-2">
+            <li>circumvent authentication, rate limits or other technical restrictions;</li>
+            <li>use automated tools to scrape the website itself instead of using the API;</li>
+            <li>misrepresent the data as your own original listings or remove attribution to source platforms where it is shown;</li>
+            <li>use the service for any unlawful purpose, including discriminatory hiring practices.</li>
+        </ul>
+
+        <h2 class="text-2xl font-bold text-white pt-4">6. Data accuracy</h2>
+        <p>
+            We aggregate data from public sources and enrich it automatically. While we work to keep the dataset
+            fresh and accurate, we cannot guarantee that every listing is still open, that every parsed salary or
+            seniority label is correct, or that the dataset is complete. The service is provided "as is" and you
+            should verify critical details on the original posting before relying on them.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">7. Intellectual property</h2>
+        <p>
+            The TechJobsData name, site design, documentation and normalization pipeline are our property. Job
+            listing content belongs to the respective employers and source platforms. Paid API customers receive a
+            non-exclusive licence to use the retrieved data in their own products, subject to these terms.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">8. Liability</h2>
+        <p>
+            To the extent permitted by law, our total liability for claims arising from the service is limited to
+            the amount you paid us in the 12 months preceding the claim. We are not liable for indirect damages,
+            lost profits, or decisions made in reliance on aggregated job data. Nothing in these terms excludes
+            liability that cannot be excluded by law.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">9. Changes and termination</h2>
+        <p>
+            We may update these terms or the service itself; material changes will be announced on the site or by
+            email at least 14 days in advance. You may stop using the service and delete your account at any time.
+        </p>
+
+        <h2 class="text-2xl font-bold text-white pt-4">10. Governing law</h2>
+        <p>
+            These terms are governed by Bulgarian law. Consumers retain the protections of the mandatory consumer
+            law of their country of residence. Disputes shall be resolved by the competent courts in Bulgaria.
+        </p>
+
+        <p>
+            Questions about these terms? Email
+            <a href="mailto:support@techjobsdata.com" class="text-indigo-400 hover:text-indigo-300">support@techjobsdata.com</a>
+            or see the <a href="{% url 'contact' %}" class="text-indigo-400 hover:text-indigo-300">contact page</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}

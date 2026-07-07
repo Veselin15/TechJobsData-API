@@ -277,7 +277,10 @@ ADSENSE_SLOTS = {
     'sidebar': '6181551539',
     'in_article': '6181551539',
 }
-ADSENSE_CONTENT_PAGES = {'index', 'job_list', 'job_detail', 'developer_guide'}
+# Pages allowed to serve ads. Job detail pages are deliberately excluded:
+# their descriptions are replicated from source platforms, and Google's
+# publisher policy disallows ads on replicated content.
+ADSENSE_CONTENT_PAGES = {'index', 'job_list', 'insights', 'developer_guide'}
 
 # SECURITY: Trust the HTTPS signal from the proxy (Cloudflare/Docker)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import timedelta
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -5,9 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib.auth import login
 from django.contrib import messages
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import F, Q
+from django.db.models import Avg, Count, F, Q
 from django.utils import timezone
 from rest_framework_api_key.models import APIKey
 
@@ -44,6 +46,117 @@ def developer_guide(request):
         context['key_prefix'] = "YOUR_API_KEY"
 
     return render(request, 'core/developer_guide.html', context)
+
+
+def about(request):
+    """About page: who we are and how the data is collected."""
+    context = {
+        'job_count': Job.objects.count(),
+        'source_count': Job.objects.values('source').distinct().count(),
+    }
+    return render(request, 'core/about.html', context)
+
+
+def contact(request):
+    """Contact page with company details and support channels."""
+    return render(request, 'core/contact.html')
+
+
+def privacy(request):
+    """Standalone, crawlable privacy policy."""
+    return render(request, 'core/privacy.html')
+
+
+def terms(request):
+    """Standalone, crawlable terms of service."""
+    return render(request, 'core/terms.html')
+
+
+INSIGHTS_CACHE_KEY = 'market_insights_v1'
+INSIGHTS_CACHE_TTL = 60 * 60  # 1 hour
+
+
+def _build_insights():
+    """Aggregate statistics computed from our own job database."""
+    now = timezone.now()
+    total_jobs = Job.objects.count()
+    if total_jobs == 0:
+        return None
+
+    week_ago = now.date() - timedelta(days=7)
+    new_this_week = Job.objects.filter(posted_at__gte=week_ago).count()
+
+    # Skill demand: count every skill tag across all listings.
+    skill_counter = Counter()
+    for skills in Job.objects.exclude(skills=[]).values_list('skills', flat=True):
+        skill_counter.update(s for s in skills if s)
+    top_skills = skill_counter.most_common(15)
+    max_skill_count = top_skills[0][1] if top_skills else 1
+    top_skills = [
+        {'name': name, 'count': count, 'pct': round(count * 100 / max_skill_count)}
+        for name, count in top_skills
+    ]
+
+    # Salary transparency and averages by seniority (yearly, salaried posts only).
+    with_salary = Job.objects.filter(Q(salary_min__isnull=False) | Q(salary_max__isnull=False))
+    salary_share = round(with_salary.count() * 100 / total_jobs)
+    # Averages use USD listings only — mixing currencies would skew the figures.
+    salary_by_seniority = list(
+        with_salary.filter(currency='USD')
+        .exclude(seniority='Not Specified')
+        .values('seniority')
+        .annotate(avg_min=Avg('salary_min'), avg_max=Avg('salary_max'), n=Count('id'))
+        .filter(n__gte=5)
+        .order_by('-avg_max')
+    )
+
+    remote_share = round(
+        Job.objects.filter(location__icontains='remote').count() * 100 / total_jobs
+    )
+
+    top_companies = list(
+        Job.objects.exclude(company='')
+        .values('company')
+        .annotate(n=Count('id'))
+        .order_by('-n')[:10]
+    )
+
+    by_source = list(
+        Job.objects.values('source').annotate(n=Count('id')).order_by('-n')
+    )
+    max_source = by_source[0]['n'] if by_source else 1
+    for row in by_source:
+        row['pct'] = round(row['n'] * 100 / max_source)
+
+    seniority_mix = list(
+        Job.objects.exclude(seniority='Not Specified')
+        .values('seniority')
+        .annotate(n=Count('id'))
+        .order_by('-n')
+    )
+
+    return {
+        'total_jobs': total_jobs,
+        'new_this_week': new_this_week,
+        'top_skills': top_skills,
+        'salary_share': salary_share,
+        'salary_by_seniority': salary_by_seniority,
+        'remote_share': remote_share,
+        'top_companies': top_companies,
+        'by_source': by_source,
+        'seniority_mix': seniority_mix,
+        'generated_at': now,
+    }
+
+
+def insights(request):
+    """Tech job market insights computed from our aggregated dataset."""
+    stats = cache.get(INSIGHTS_CACHE_KEY)
+    if stats is None:
+        stats = _build_insights()
+        if stats is not None:
+            cache.set(INSIGHTS_CACHE_KEY, stats, INSIGHTS_CACHE_TTL)
+    return render(request, 'core/insights.html', {'stats': stats})
 
 
 # --- 2. Authentication ---

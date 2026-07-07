@@ -7,6 +7,13 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('developers/', views.developer_guide, name='developer_guide'),
+    path('insights/', views.insights, name='insights'),
+
+    # --- Company & Legal Pages ---
+    path('about/', views.about, name='about'),
+    path('contact/', views.contact, name='contact'),
+    path('privacy/', views.privacy, name='privacy'),
+    path('terms/', views.terms, name='terms'),
 
     # --- Job Board Features ---
     path('jobs/', views.job_list, name='job_list'),

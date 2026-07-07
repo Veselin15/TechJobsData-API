@@ -2,6 +2,20 @@ from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 from .models import Job
 
+
+class StaticPagesSitemap(Sitemap):
+    changefreq = "weekly"
+    priority = 0.6
+    protocol = 'https'
+
+    def items(self):
+        return ['index', 'job_list', 'insights', 'developer_guide',
+                'about', 'contact', 'privacy', 'terms']
+
+    def location(self, item):
+        return reverse(item)
+
+
 class JobSitemap(Sitemap):
     changefreq = "daily"
     priority = 0.8

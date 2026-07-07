@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Contact TechJobsData — Support, Data Removal & Partnerships{% endblock %}
+{% block meta_description %}Get in touch with the TechJobsData team for support, billing questions, data-removal requests or partnership ideas. We reply within two business days.{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 sm:py-20 px-4">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">Contact Us</h1>
+
+    <p class="text-slate-300 leading-relaxed mb-10">
+        Whether you're a job seeker who spotted a broken listing, a developer with an API question, or a company
+        that wants its listings updated or removed — send us an email and a real person will get back to you,
+        usually within two business days.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-white mb-2">General & Technical Support</h2>
+            <p class="text-sm text-slate-400 mb-4">API questions, account issues, bug reports and feedback about the job board.</p>
+            <a href="mailto:support@techjobsdata.com" class="text-indigo-400 hover:text-indigo-300 font-semibold">support@techjobsdata.com</a>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-white mb-2">Billing</h2>
+            <p class="text-sm text-slate-400 mb-4">Subscription changes, invoices and refund requests under our 7-day guarantee.</p>
+            <a href="mailto:support@techjobsdata.com" class="text-indigo-400 hover:text-indigo-300 font-semibold">support@techjobsdata.com</a>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-white mb-2">Data Corrections & Removal</h2>
+            <p class="text-sm text-slate-400 mb-4">
+                If you represent a company or job platform and want a listing corrected or removed from our index,
+                include the listing URL and we'll process it within 48 hours.
+            </p>
+            <a href="mailto:support@techjobsdata.com" class="text-indigo-400 hover:text-indigo-300 font-semibold">support@techjobsdata.com</a>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-white mb-2">Partnerships & Press</h2>
+            <p class="text-sm text-slate-400 mb-4">Data partnerships, integrations and media enquiries.</p>
+            <a href="mailto:support@techjobsdata.com" class="text-indigo-400 hover:text-indigo-300 font-semibold">support@techjobsdata.com</a>
+        </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-3">Company Details</h2>
+        <div class="text-sm text-slate-400 space-y-1">
+            <p>TechJobsData Inc.</p>
+            <p>Dobrotitsa 34 D</p>
+            <p>Dobrich 9300, Bulgaria</p>
+        </div>
+        <p class="text-sm text-slate-500 mt-4">
+            Before writing in, you may find a faster answer in the
+            <a href="{% url 'developer_guide' %}" class="text-indigo-400 hover:text-indigo-300">API documentation</a>
+            or on the <a href="{% url 'about' %}" class="text-indigo-400 hover:text-indigo-300">about page</a>,
+            which explains how our data pipeline works.
+        </p>
+    </div>
+</div>
+{% endblock %}
