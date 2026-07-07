@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load job_extras %}
 
 {% block title %}{{ job.title }} at {{ job.company }} | TechJobsData{% endblock %}
 {% block meta_description %}{{ job.title }} at {{ job.company }} in {{ job.location }}. {% if job.salary_min and job.salary_max %}Salary: {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }}–{{ job.salary_max|intcomma }}. {% endif %}View details and apply now.{% endblock %}
@@ -63,45 +64,82 @@
                 {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% elif job.source == 'Remotive' %}bg-cyan-500{% elif job.source == 'Arbeitnow' %}bg-pink-500{% else %}bg-orange-500{% endif %}"></div>
 
             <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-bold text-white mb-3">{{ job.title }}</h1>
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-slate-400">
-                        <span class="text-indigo-400 font-semibold">{{ job.company }}</span>
-                        <span class="text-slate-600">&middot;</span>
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            {{ job.location }}
-                        </span>
+                <div class="flex items-start gap-4 min-w-0">
+                    {% if job.company_logo %}
+                        <img src="{{ job.company_logo }}" alt="{{ job.company }} logo" loading="lazy"
+                             class="w-16 h-16 rounded-2xl object-contain bg-white/90 p-1.5 border border-white/10 shrink-0 hidden sm:block"
+                             onerror="this.style.display='none'">
+                    {% else %}
+                        <div class="w-16 h-16 rounded-2xl border items-center justify-center text-lg font-bold shrink-0 hidden sm:flex {{ job.company|avatar_class }}">
+                            {{ job.company|company_initials }}
+                        </div>
+                    {% endif %}
+                    <div class="min-w-0">
+                        <h1 class="text-2xl sm:text-3xl font-bold text-white mb-3">{{ job.title }}</h1>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-slate-400">
+                            <span class="text-indigo-400 font-semibold">{{ job.company }}</span>
+                            <span class="text-slate-600">&middot;</span>
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                {{ job.location }}
+                            </span>
+                            {% if job.posted_at|is_new %}
+                                <span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-300 border border-emerald-500/30">New</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 <span class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium border
                     {% if job.source == 'LinkedIn' %}bg-blue-500/10 text-blue-300 border-blue-500/20
                     {% elif job.source == 'Glassdoor' %}bg-green-500/10 text-green-300 border-green-500/20
+                    {% elif job.source == 'Remotive' %}bg-cyan-500/10 text-cyan-300 border-cyan-500/20
+                    {% elif job.source == 'Arbeitnow' %}bg-pink-500/10 text-pink-300 border-pink-500/20
+                    {% elif job.source == 'Jobicy' %}bg-violet-500/10 text-violet-300 border-violet-500/20
                     {% else %}bg-white/5 text-slate-300 border-white/10{% endif %}">
                     {{ job.source }}
                 </span>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                 <div class="bg-white/5 border border-white/5 rounded-xl p-3">
                     <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Posted</p>
-                    <p class="text-sm text-white font-medium">{{ job.posted_at|date:"M d, Y"|default:"N/A" }}</p>
+                    <p class="text-sm text-white font-medium">
+                        {{ job.posted_at|date:"M d, Y"|default:"N/A" }}
+                        {% with fresh=job.posted_at|freshness %}{% if fresh %}<span class="text-slate-500">({{ fresh }})</span>{% endif %}{% endwith %}
+                    </p>
                 </div>
                 <div class="bg-white/5 border border-white/5 rounded-xl p-3">
                     <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Seniority</p>
                     <p class="text-sm text-white font-medium">{{ job.seniority|default:"Not Specified" }}</p>
                 </div>
-                <div class="bg-white/5 border border-white/5 rounded-xl p-3 col-span-2">
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Work Model</p>
+                    <p class="text-sm font-medium
+                        {% if job.remote_type == 'Remote' %}text-emerald-400{% elif job.remote_type == 'Hybrid' %}text-amber-300{% else %}text-white{% endif %}">
+                        {{ job.remote_type|default:"Not Specified" }}
+                    </p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Type</p>
+                    <p class="text-sm text-white font-medium">{{ job.employment_type|default:"Not Specified" }}</p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Category</p>
+                    <p class="text-sm text-white font-medium">
+                        {% if job.category and job.category != 'Other' %}
+                            <a href="{% url 'job_list' %}?category={{ job.category|urlencode }}"
+                               class="hover:text-indigo-300 transition-colors">{{ job.category }}</a>
+                        {% else %}
+                            {{ job.category|default:"Other" }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
                     <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Salary</p>
                     <p class="text-sm font-medium {% if job.salary_min or job.salary_max %}text-emerald-400{% else %}text-slate-500{% endif %}">
-                        {% if job.salary_min and job.salary_max %}
-                            {{ job.currency|default:"$" }}{{ job.salary_min|intcomma }} – {{ job.currency|default:"$" }}{{ job.salary_max|intcomma }}
-                        {% elif job.salary_min %}
-                            From {{ job.currency|default:"$" }}{{ job.salary_min|intcomma }}
-                        {% elif job.salary_max %}
-                            Up to {{ job.currency|default:"$" }}{{ job.salary_max|intcomma }}
-                        {% else %}
-                            Not specified
+                        {{ job|salary_compact|default:"Not specified" }}
+                        {% if job.currency and job.currency != 'USD' and job.salary_max_usd %}
+                            <span class="block text-xs text-slate-500 mt-0.5">≈ ${{ job.salary_min_usd|default:job.salary_max_usd|intcomma }}{% if job.salary_min_usd and job.salary_max_usd and job.salary_min_usd != job.salary_max_usd %} – ${{ job.salary_max_usd|intcomma }}{% endif %} USD</span>
                         {% endif %}
                     </p>
                 </div>
@@ -140,5 +178,40 @@
                 </a>
             </div>
         </div>
+
+        {% if similar_jobs %}
+        <div class="mt-12">
+            <h2 class="text-xl font-bold text-white mb-5">Similar Jobs</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% for sim in similar_jobs %}
+                <a href="{% url 'job_detail' sim.id %}"
+                   class="group bg-slate-900/60 border border-white/10 rounded-2xl p-5 hover:border-indigo-500/30 hover:bg-slate-900/80 transition-all">
+                    <div class="flex items-start gap-3">
+                        {% if sim.company_logo %}
+                            <img src="{{ sim.company_logo }}" alt="" loading="lazy"
+                                 class="w-10 h-10 rounded-lg object-contain bg-white/90 p-1 border border-white/10 shrink-0"
+                                 onerror="this.style.display='none'">
+                        {% else %}
+                            <div class="w-10 h-10 rounded-lg border flex items-center justify-center text-xs font-bold shrink-0 {{ sim.company|avatar_class }}">
+                                {{ sim.company|company_initials }}
+                            </div>
+                        {% endif %}
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors truncate">{{ sim.title }}</p>
+                            <p class="text-xs text-slate-400 mt-1 truncate">{{ sim.company }} · {{ sim.location|truncatechars:40 }}</p>
+                            <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                                {% if sim.remote_type == 'Remote' %}<span class="text-emerald-400 font-medium">Remote</span>{% endif %}
+                                {% with sim_salary=sim|salary_compact %}
+                                    {% if sim_salary %}<span class="text-emerald-400/80">{{ sim_salary }}</span>{% endif %}
+                                {% endwith %}
+                                <span class="text-slate-500">{{ sim.posted_at|freshness }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 {% endblock %}

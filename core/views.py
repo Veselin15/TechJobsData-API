@@ -100,18 +100,21 @@ def _build_insights():
     # Salary transparency and averages by seniority (yearly, salaried posts only).
     with_salary = Job.objects.filter(Q(salary_min__isnull=False) | Q(salary_max__isnull=False))
     salary_share = round(with_salary.count() * 100 / total_jobs)
-    # Averages use USD listings only — mixing currencies would skew the figures.
+    # Averages use USD-normalized values (fixed reference rates) so EUR/GBP
+    # listings are comparable instead of being excluded.
     salary_by_seniority = list(
-        with_salary.filter(currency='USD')
+        Job.objects.filter(salary_max_usd__isnull=False)
         .exclude(seniority='Not Specified')
         .values('seniority')
-        .annotate(avg_min=Avg('salary_min'), avg_max=Avg('salary_max'), n=Count('id'))
+        .annotate(avg_min=Avg('salary_min_usd'), avg_max=Avg('salary_max_usd'), n=Count('id'))
         .filter(n__gte=5)
         .order_by('-avg_max')
     )
 
     remote_share = round(
-        Job.objects.filter(location__icontains='remote').count() * 100 / total_jobs
+        Job.objects.filter(
+            Q(remote_type='Remote') | Q(location__icontains='remote')
+        ).count() * 100 / total_jobs
     )
 
     top_companies = list(
@@ -197,6 +200,7 @@ DATE_OPTIONS = [
 
 SORT_OPTIONS = [
     ('newest', 'Newest first'),
+    ('best', 'Best match'),
     ('oldest', 'Oldest first'),
     ('salary_high', 'Highest salary'),
     ('company', 'Company A–Z'),
@@ -208,6 +212,7 @@ def job_list(request):
     location = request.GET.get('loc', '').strip()
     source = request.GET.get('source', '')
     seniority = request.GET.get('seniority', '')
+    category = request.GET.get('category', '')
     min_salary = request.GET.get('min_salary', '')
     posted_within = request.GET.get('posted_within', '')
     remote_only = request.GET.get('remote') == '1'
@@ -227,11 +232,18 @@ def job_list(request):
         jobs = jobs.filter(source=source)
     if seniority:
         jobs = jobs.filter(seniority=seniority)
+    if category:
+        jobs = jobs.filter(category=category)
     if remote_only:
-        jobs = jobs.filter(location__icontains='remote')
+        # Detected remote_type first; location text covers pre-enrichment rows
+        jobs = jobs.filter(Q(remote_type='Remote') | Q(location__icontains='remote'))
     if min_salary.isdigit():
         floor = int(min_salary)
-        jobs = jobs.filter(Q(salary_min__gte=floor) | Q(salary_max__gte=floor))
+        # Compare in USD so a €90k job clears a $75k floor correctly
+        jobs = jobs.filter(
+            Q(salary_min_usd__gte=floor) | Q(salary_max_usd__gte=floor) |
+            Q(salary_min__gte=floor) | Q(salary_max__gte=floor)
+        )
     if posted_within.isdigit():
         cutoff = timezone.now().date() - timedelta(days=int(posted_within))
         jobs = jobs.filter(posted_at__gte=cutoff)
@@ -239,10 +251,13 @@ def job_list(request):
     if sort == 'oldest':
         jobs = jobs.order_by('posted_at', 'id')
     elif sort == 'salary_high':
-        jobs = jobs.order_by(F('salary_max').desc(nulls_last=True),
+        jobs = jobs.order_by(F('salary_max_usd').desc(nulls_last=True),
+                             F('salary_max').desc(nulls_last=True),
                              F('salary_min').desc(nulls_last=True), '-posted_at')
     elif sort == 'company':
         jobs = jobs.order_by('company', '-posted_at')
+    elif sort == 'best':
+        jobs = jobs.order_by('-quality_score', '-posted_at', '-id')
     else:
         sort = 'newest'
         jobs = jobs.order_by('-posted_at', '-id')
@@ -264,6 +279,10 @@ def job_list(request):
         Job.objects.exclude(seniority='Not Specified')
         .values_list('seniority', flat=True).distinct().order_by('seniority')
     )
+    available_categories = list(
+        Job.objects.exclude(category='').exclude(category='Other')
+        .values_list('category', flat=True).distinct().order_by('category')
+    )
 
     # Querystring with every active filter except 'page' — pagination links
     # append their own page number to it.
@@ -271,7 +290,12 @@ def job_list(request):
     params.pop('page', None)
     qs = params.urlencode()
 
-    has_filters = any([source, seniority, min_salary, posted_within, remote_only]) \
+    # Same, minus 'category' — category chips swap their own value in
+    params_no_cat = params.copy()
+    params_no_cat.pop('category', None)
+    qs_no_category = params_no_cat.urlencode()
+
+    has_filters = any([source, seniority, category, min_salary, posted_within, remote_only]) \
         or sort != 'newest'
 
     context = {
@@ -288,10 +312,13 @@ def job_list(request):
         'saved_job_ids': saved_job_ids,
         'available_sources': available_sources,
         'available_seniorities': available_seniorities,
+        'available_categories': available_categories,
+        'category': category,
         'salary_options': SALARY_OPTIONS,
         'date_options': DATE_OPTIONS,
         'sort_options': SORT_OPTIONS,
         'qs': qs,
+        'qs_no_category': qs_no_category,
         'has_filters': has_filters,
     }
 
@@ -304,7 +331,23 @@ def job_list(request):
 def job_detail(request, pk):
     """SEO landing page for a single job."""
     job = get_object_or_404(Job, pk=pk)
-    return render(request, 'core/job_detail.html', {'job': job})
+
+    # Similar jobs: same category first (freshest, highest-quality), padded
+    # with same-source jobs if the category is thin. Cheap and effective.
+    similar = []
+    if job.category and job.category != 'Other':
+        similar = list(
+            Job.objects.filter(category=job.category)
+            .exclude(pk=job.pk)
+            .order_by('-quality_score', '-posted_at')[:4]
+        )
+    if len(similar) < 4:
+        exclude_ids = [job.pk] + [j.pk for j in similar]
+        filler = Job.objects.exclude(pk__in=exclude_ids) \
+            .order_by('-quality_score', '-posted_at')[:4 - len(similar)]
+        similar.extend(filler)
+
+    return render(request, 'core/job_detail.html', {'job': job, 'similar_jobs': similar})
 
 
 # --- 4. User Dashboard & API Keys ---

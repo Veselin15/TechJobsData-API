@@ -1,4 +1,5 @@
 {% load humanize %}
+{% load job_extras %}
 <div class="space-y-4" id="job-results-area">
 
     {% if total_count is not None %}
@@ -21,10 +22,23 @@
     <div class="group relative bg-white/[0.03] hover:bg-white/[0.07] transition-all duration-300 border border-white/5 rounded-2xl overflow-hidden hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5">
 
         <div class="absolute left-0 top-0 bottom-0 w-1.5
-            {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% elif job.source == 'Remotive' %}bg-cyan-500{% elif job.source == 'Arbeitnow' %}bg-pink-500{% else %}bg-orange-500{% endif %}">
+            {% if job.source == 'LinkedIn' %}bg-blue-500{% elif job.source == 'Glassdoor' %}bg-green-500{% elif job.source == 'Remotive' %}bg-cyan-500{% elif job.source == 'Arbeitnow' %}bg-pink-500{% elif job.source == 'Jobicy' %}bg-violet-500{% else %}bg-orange-500{% endif %}">
         </div>
 
         <div class="p-5 sm:p-6 pl-7 sm:pl-8 flex gap-4">
+
+            {# Company logo, or a deterministic colored monogram #}
+            <div class="shrink-0 hidden sm:block">
+                {% if job.company_logo %}
+                    <img src="{{ job.company_logo }}" alt="{{ job.company }} logo" loading="lazy"
+                         class="w-12 h-12 rounded-xl object-contain bg-white/90 p-1 border border-white/10"
+                         onerror="this.outerHTML='<div class=&quot;w-12 h-12 rounded-xl border flex items-center justify-center text-sm font-bold {{ job.company|avatar_class }}&quot;>{{ job.company|company_initials }}</div>'">
+                {% else %}
+                    <div class="w-12 h-12 rounded-xl border flex items-center justify-center text-sm font-bold {{ job.company|avatar_class }}">
+                        {{ job.company|company_initials }}
+                    </div>
+                {% endif %}
+            </div>
 
             <div class="flex-1 min-w-0">
                 <h3 class="text-lg sm:text-xl font-bold text-white group-hover:text-indigo-300 transition-colors leading-tight mb-2">
@@ -32,6 +46,9 @@
                         <span class="absolute inset-0" aria-hidden="true"></span>
                         {{ job.title }}
                     </a>
+                    {% if job.posted_at|is_new %}
+                        <span class="ml-2 inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-300 border border-emerald-500/30 align-middle">New</span>
+                    {% endif %}
                 </h3>
 
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-400">
@@ -44,26 +61,53 @@
                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         {{ job.location|truncatechars:60 }}
                     </span>
-                    {% if job.salary_min or job.salary_max %}
+                    {% with salary_text=job|salary_compact %}
+                    {% if salary_text %}
                     <span class="hidden sm:inline text-slate-600">&middot;</span>
                     <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        {% if job.salary_min and job.salary_max and job.salary_min != job.salary_max %}
-                            {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }} – {{ job.salary_max|intcomma }}
-                        {% elif job.salary_min %}
-                            {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }}
-                        {% else %}
-                            Up to {{ job.currency|default:"USD" }} {{ job.salary_max|intcomma }}
-                        {% endif %}
+                        {{ salary_text }}
                     </span>
                     {% endif %}
+                    {% endwith %}
                 </div>
 
+                {% if job.summary %}
+                <p class="mt-3 text-sm text-slate-400 leading-relaxed line-clamp-2">
+                    {{ job.summary }}
+                </p>
+                {% endif %}
+
                 <div class="mt-4 flex flex-wrap items-center gap-2 relative z-10">
+                    {% if job.remote_type == 'Remote' %}
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Remote
+                        </span>
+                    {% elif job.remote_type == 'Hybrid' %}
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300 border border-amber-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Hybrid
+                        </span>
+                    {% elif job.remote_type == 'On-site' %}
+                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-500/10 px-3 py-1 text-xs font-semibold text-slate-300 border border-slate-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> On-site
+                        </span>
+                    {% endif %}
                     {% if job.seniority and job.seniority != "Not Specified" %}
                         <span class="inline-flex items-center rounded-full bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300 border border-purple-500/20">
                             {{ job.seniority }}
                         </span>
+                    {% endif %}
+                    {% if job.employment_type %}
+                        <span class="inline-flex items-center rounded-full bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-300 border border-sky-500/20">
+                            {{ job.employment_type }}
+                        </span>
+                    {% endif %}
+                    {% if job.category and job.category != 'Other' %}
+                        <a href="{% url 'job_list' %}?category={{ job.category|urlencode }}"
+                           class="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+                           title="Browse {{ job.category }} jobs">
+                            {{ job.category }}
+                        </a>
                     {% endif %}
                     {% for skill in job.skills|slice:":5" %}
                         <a href="{% url 'job_list' %}?q={{ skill|urlencode }}"
@@ -85,11 +129,12 @@
                         {% elif job.source == 'Glassdoor' %}bg-green-500/10 text-green-300 border-green-500/20
                         {% elif job.source == 'Remotive' %}bg-cyan-500/10 text-cyan-300 border-cyan-500/20
                         {% elif job.source == 'Arbeitnow' %}bg-pink-500/10 text-pink-300 border-pink-500/20
+                        {% elif job.source == 'Jobicy' %}bg-violet-500/10 text-violet-300 border-violet-500/20
                         {% else %}bg-white/5 text-slate-300 border-white/10{% endif %}">
                         {{ job.source }}
                     </span>
                     <span class="text-xs text-slate-500 font-mono whitespace-nowrap hidden sm:block">
-                        {{ job.posted_at|date:"M d" }}
+                        {{ job.posted_at|freshness }}
                     </span>
                 </div>
 

@@ -69,9 +69,9 @@
         <h2 class="text-2xl font-bold text-white mb-3">Average advertised salary by seniority</h2>
         <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-3xl">
             Only {{ stats.salary_share }}% of tech listings state a salary, which makes the ones that do
-            especially useful as a market signal. For USD-denominated listings we parse the advertised range,
-            convert it to a yearly figure, and average it per detected seniority level. Treat these as advertised
-            ranges, not total compensation — equity and bonuses are usually excluded.
+            especially useful as a market signal. We parse each advertised range, annualize it, and convert it
+            to USD at fixed reference rates so listings in euros and pounds are comparable. Treat these as
+            advertised ranges, not total compensation — equity and bonuses are usually excluded.
         </p>
         <div class="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden">
             <table class="w-full text-sm">
