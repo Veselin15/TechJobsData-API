@@ -1,10 +1,15 @@
 import re
 from datetime import date, timedelta
-from typing import List, Tuple, Optional, Set
+from typing import Iterable, List, Tuple, Optional, Set
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 from .constants import (
     TECH_KEYWORDS, NEGATION_PATTERNS, SENIORITY_MAP,
-    SALARY_IGNORE_TERMS, SALARY_HINTS, SALARY_MULTIPLIERS
+    SALARY_IGNORE_TERMS, SALARY_HINTS, SALARY_MULTIPLIERS,
+    SKILL_ALIASES, NOISE_TAGS, TITLE_NOISE_PATTERNS,
+    HYBRID_PATTERNS, ONSITE_PATTERNS, REMOTE_PATTERNS,
+    EMPLOYMENT_PATTERNS, ROLE_CATEGORY_TITLE_RULES, ROLE_CATEGORY_SKILL_HINTS,
+    CURRENCY_TO_USD, SUMMARY_BOILERPLATE_PATTERNS,
 )
 
 # --- 1. PRE-COMPILE PATTERNS FOR PERFORMANCE ---
@@ -45,6 +50,31 @@ SENIORITY_PATTERNS = {
 
 # Salary Ignore Terms
 SALARY_IGNORE_REGEX = re.compile(r'\b(' + '|'.join(SALARY_IGNORE_TERMS) + r')\b')
+
+# Canonical casing for every known skill, keyed by lowercase form
+CANONICAL_SKILLS = {kw.lower(): kw for kw in TECH_KEYWORDS}
+
+TITLE_NOISE_REGEXES = [re.compile(p, re.IGNORECASE) for p in TITLE_NOISE_PATTERNS]
+HYBRID_REGEXES = [re.compile(p) for p in HYBRID_PATTERNS]
+ONSITE_REGEXES = [re.compile(p) for p in ONSITE_PATTERNS]
+REMOTE_REGEXES = [re.compile(p) for p in REMOTE_PATTERNS]
+EMPLOYMENT_REGEXES = {
+    label: [re.compile(p) for p in patterns]
+    for label, patterns in EMPLOYMENT_PATTERNS.items()
+}
+CATEGORY_TITLE_REGEXES = [
+    (category, [re.compile(p) for p in patterns])
+    for category, patterns in ROLE_CATEGORY_TITLE_RULES
+]
+SUMMARY_BOILERPLATE_REGEXES = [
+    re.compile(p, re.IGNORECASE) for p in SUMMARY_BOILERPLATE_PATTERNS
+]
+
+# Tracking params that make identical jobs look like different URLs
+_TRACKING_PARAMS_RE = re.compile(
+    r'^(utm_\w+|ref|referer|referrer|source|src|gh_src|lever-source|fbclid|gclid|mc_cid|mc_eid)$',
+    re.IGNORECASE,
+)
 
 
 _TAG_RE = re.compile(r'<[^>]+>')
@@ -222,6 +252,8 @@ def parse_salary(text: str) -> Tuple[Optional[float], Optional[float], Optional[
         v2 = parse_num(raw_n2, k2)
 
         if v1 and v2:
+            if v1 > v2:  # "150k - 120k" — store as a proper range
+                v1, v2 = v2, v1
             mult = get_period_multiplier(m.end())
             candidates.append((v1 * mult, v2 * mult))
 
@@ -301,3 +333,218 @@ def parse_relative_date(text: str) -> date:
             return today - timedelta(days=num * 30)
 
     return today
+
+
+# --- ENRICHMENT LAYER -------------------------------------------------------
+# Everything below turns a raw scraped listing into structured, comparable
+# data. All functions are pure (no Django, no network) so they can run both
+# inside the Scrapy pipeline and from the `reprocess_jobs` management command.
+
+
+def clean_title(title: Optional[str]) -> str:
+    """
+    Strips recruiter decorations from job titles:
+    "Senior Python Dev (m/f/d) - Remote 🚀" -> "Senior Python Dev".
+    """
+    if not title:
+        return ""
+    text = title
+    for pattern in TITLE_NOISE_REGEXES:
+        text = pattern.sub(' ', text)
+    # Collapse leftover separators and whitespace
+    text = re.sub(r'\s*[|/•·]+\s*$', '', text)
+    text = re.sub(r'\s{2,}', ' ', text).strip(' -–—:,')
+    return text.strip() or title.strip()
+
+
+def canonicalize_url(url: Optional[str]) -> str:
+    """
+    Normalizes a job URL for deduplication: lowercases the host, drops
+    fragments and tracking query params, and strips trailing slashes.
+    The same posting shared with ?utm_source=... must not create a duplicate.
+    """
+    if not url:
+        return ""
+    try:
+        parts = urlsplit(url.strip())
+    except ValueError:
+        return url.strip()
+    kept_params = [
+        (k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if not _TRACKING_PARAMS_RE.match(k)
+    ]
+    path = parts.path.rstrip('/') or '/'
+    return urlunsplit((
+        parts.scheme.lower() or 'https',
+        parts.netloc.lower(),
+        path,
+        urlencode(kept_params),
+        '',
+    ))
+
+
+def normalize_skills(raw_tags: Iterable[str], extracted: Iterable[str]) -> List[str]:
+    """
+    Merges source-provided tags with our own extraction into one clean,
+    canonical list: aliases resolved ("golang" -> "Go"), noise dropped
+    ("digital nomad"), casing fixed ("python" -> "Python"), deduplicated.
+    Unknown but plausible tags are kept with tidy casing.
+    """
+    merged = {}
+
+    def add(tag: str, trusted: bool):
+        cleaned = tag.strip().strip('.,;')
+        if not cleaned or len(cleaned) > 40:
+            return
+        low = cleaned.lower()
+        if low in NOISE_TAGS:
+            return
+        canonical = SKILL_ALIASES.get(low) or CANONICAL_SKILLS.get(low)
+        if canonical is None:
+            if not trusted:
+                return
+            # Unknown source tag: keep it, but tidy the casing
+            canonical = cleaned if any(c.isupper() for c in cleaned) else cleaned.title()
+        merged[canonical.lower()] = canonical
+
+    for tag in raw_tags or []:
+        if isinstance(tag, str):
+            add(tag, trusted=True)
+    for tag in extracted or []:
+        add(tag, trusted=False)
+
+    return sorted(merged.values(), key=str.lower)
+
+
+def detect_remote_type(title: str, location: str, description: str) -> str:
+    """
+    Classifies the work model: 'Remote', 'Hybrid', 'On-site' or 'Not Specified'.
+    Title and location are trusted more than the description, and hybrid
+    beats remote when both appear ("remote 2 days a week" is hybrid).
+    """
+    strong = f"{title or ''} {location or ''}".lower()
+    weak = (description or '').lower()[:4000]
+
+    for source_text in (strong, weak):
+        if any(p.search(source_text) for p in HYBRID_REGEXES):
+            return "Hybrid"
+        is_remote = any(p.search(source_text) for p in REMOTE_REGEXES)
+        is_onsite = any(p.search(source_text) for p in ONSITE_REGEXES)
+        if is_remote and is_onsite:
+            return "Hybrid"
+        if is_remote:
+            return "Remote"
+        if is_onsite:
+            return "On-site"
+    return "Not Specified"
+
+
+def detect_employment_type(title: str, description: str) -> str:
+    """'Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship' or ''."""
+    title_low = (title or '').lower()
+    desc_low = (description or '').lower()[:4000]
+    for source_text in (title_low, desc_low):
+        for label, patterns in EMPLOYMENT_REGEXES.items():
+            if any(p.search(source_text) for p in patterns):
+                return label
+    return ""
+
+
+def classify_role(title: str, skills: Iterable[str]) -> str:
+    """
+    Buckets a job into a role category. The title is checked first (ordered
+    rules, first match wins); if it is too generic, the skill list votes.
+    """
+    title_low = (title or '').lower()
+    for category, patterns in CATEGORY_TITLE_REGEXES:
+        if any(p.search(title_low) for p in patterns):
+            return category
+
+    skill_set = set(skills or [])
+    if skill_set:
+        best_category, best_hits = "", 0
+        for category, hints in ROLE_CATEGORY_SKILL_HINTS.items():
+            hits = len(skill_set & hints)
+            if hits > best_hits:
+                best_category, best_hits = category, hits
+        if best_hits >= 2:
+            return best_category
+    return "Other"
+
+
+def to_usd(amount: Optional[float], currency: Optional[str]) -> Optional[int]:
+    """Converts an annual amount to USD using fixed reference rates."""
+    if amount is None:
+        return None
+    rate = CURRENCY_TO_USD.get((currency or 'USD').upper())
+    if rate is None:
+        return None
+    return int(round(amount * rate))
+
+
+def make_summary(description: str, max_len: int = 260) -> str:
+    """
+    Builds a card-sized excerpt: skips boilerplate headings ("About us"),
+    then takes whole sentences from the first informative paragraph.
+    """
+    if not description:
+        return ""
+
+    for paragraph in description.split('\n'):
+        para = paragraph.strip()
+        if len(para) < 60:
+            continue  # headings, dates, bullets-of-one-word
+        if any(p.match(para) for p in SUMMARY_BOILERPLATE_REGEXES):
+            continue
+
+        if len(para) <= max_len:
+            return para
+        # Cut on a sentence boundary where possible, else on a word
+        cut = para[:max_len]
+        sentence_end = max(cut.rfind('. '), cut.rfind('! '), cut.rfind('? '))
+        if sentence_end > 80:
+            return cut[:sentence_end + 1]
+        return cut[:cut.rfind(' ')].rstrip(',;:') + '…'
+    return ""
+
+
+def compute_quality_score(*, description: str, skills: List[str],
+                          salary_min: Optional[int], salary_max: Optional[int],
+                          seniority: str, remote_type: str,
+                          employment_type: str, company_logo: str,
+                          posted_at: Optional[date]) -> int:
+    """
+    Scores how complete/useful a listing is (0-100). Used to rank listings
+    when freshness alone is a tie and to let API users filter thin postings.
+    """
+    score = 0
+    desc_len = len(description or '')
+    if desc_len >= 1500:
+        score += 25
+    elif desc_len >= 400:
+        score += 15
+    elif desc_len >= 100:
+        score += 5
+
+    skill_count = len(skills or [])
+    if skill_count >= 5:
+        score += 20
+    elif skill_count >= 2:
+        score += 12
+    elif skill_count >= 1:
+        score += 5
+
+    if salary_min or salary_max:
+        score += 20
+    if seniority and seniority != "Not Specified":
+        score += 10
+    if remote_type and remote_type != "Not Specified":
+        score += 5
+    if employment_type:
+        score += 5
+    if company_logo:
+        score += 5
+    if posted_at and (date.today() - posted_at).days <= 7:
+        score += 10
+
+    return min(score, 100)
