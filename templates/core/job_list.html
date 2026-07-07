@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if query %}{{ query }} Jobs{% if location %} in {{ location }}{% endif %} — {% endif %}Browse Tech Jobs | TechJobsData{% endblock %}
-{% block meta_description %}{% if query %}Find {{ query }} jobs{% if location %} in {{ location }}{% endif %}. {% endif %}Browse {{ total_count|default:"thousands of" }} remote tech job listings from LinkedIn, Glassdoor, and more.{% endblock %}
+{% block title %}{% if query %}{{ query }} Jobs{% if location %} in {{ location }}{% endif %} — {% elif category %}{{ category }} Jobs — {% endif %}Browse Tech Jobs | TechJobsData{% endblock %}
+{% block meta_description %}{% if query %}Find {{ query }} jobs{% if location %} in {{ location }}{% endif %}. {% elif category %}Browse {{ total_count|default:"" }} open {{ category }} positions. {% endif %}Browse {{ total_count|default:"thousands of" }} remote tech job listings from LinkedIn, Glassdoor, and more.{% endblock %}
 {% block og_tags %}
 <meta property="og:title" content="{% if query %}{{ query }} Jobs{% else %}Browse Tech Jobs{% endif %} | TechJobsData">
 <meta property="og:description" content="{% if query %}Find {{ query }} jobs{% if location %} in {{ location }}{% endif %}. {% endif %}Browse remote tech job listings updated in real-time.">
@@ -12,7 +12,9 @@
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 lg:py-12">
 
     <div class="mb-8 text-center max-w-3xl mx-auto">
-        <h1 class="text-2xl sm:text-3xl font-bold text-white mb-3">Browse Remote Tech Jobs</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-white mb-3">
+            {% if category %}Browse {{ category }} Jobs{% else %}Browse Remote Tech Jobs{% endif %}
+        </h1>
         <p class="text-slate-400 leading-relaxed">
             Search {{ total_count|default:"thousands of" }} curated tech job listings scraped in real-time from
             LinkedIn, Glassdoor, RemoteOK, and more. Filter by role, location, seniority, and source to find
@@ -30,7 +32,7 @@
                   hx-swap="outerHTML show:window:top"
                   hx-include="#search-form"
                   hx-push-url="true"
-                  hx-indicator="#search-spinner"
+                  hx-indicator="#search-spinner, #job-results-container"
                   class="space-y-4">
 
                 {# Keep the active category when a select re-submits the form #}

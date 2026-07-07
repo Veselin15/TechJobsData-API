@@ -1,5 +1,5 @@
 """Presentation helpers for job listings (salary formatting, avatars, freshness)."""
-from datetime import date
+from datetime import date, timedelta
 
 from django import template
 
@@ -105,3 +105,29 @@ def is_new(posted_at):
     """True for jobs posted within the last 2 days."""
     posted_at = _as_date(posted_at)
     return bool(posted_at) and (date.today() - posted_at).days <= 2
+
+
+# schema.org employmentType enum values for Google Jobs rich results
+SCHEMA_EMPLOYMENT_TYPES = {
+    'Full-time': 'FULL_TIME',
+    'Part-time': 'PART_TIME',
+    'Contract': 'CONTRACTOR',
+    'Freelance': 'CONTRACTOR',
+    'Internship': 'INTERN',
+}
+
+
+@register.filter
+def schema_employment_type(employment_type):
+    """'Full-time' -> 'FULL_TIME' (schema.org enum); '' for unknown."""
+    return SCHEMA_EMPLOYMENT_TYPES.get(employment_type or '', '')
+
+
+@register.filter
+def valid_through(posted_at):
+    """ISO expiry date for JobPosting.validThrough — matches the 30-day
+    cleanup task, so Google never gets told a deleted job is still open."""
+    posted_at = _as_date(posted_at)
+    if not posted_at:
+        return ""
+    return (posted_at + timedelta(days=30)).isoformat()

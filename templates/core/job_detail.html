@@ -2,12 +2,12 @@
 {% load humanize %}
 {% load job_extras %}
 
-{% block title %}{{ job.title }} at {{ job.company }} | TechJobsData{% endblock %}
-{% block meta_description %}{{ job.title }} at {{ job.company }} in {{ job.location }}. {% if job.salary_min and job.salary_max %}Salary: {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }}–{{ job.salary_max|intcomma }}. {% endif %}View details and apply now.{% endblock %}
+{% block title %}{{ job.title }} at {{ job.company }}{% if job.remote_type == 'Remote' %} (Remote){% endif %} | TechJobsData{% endblock %}
+{% block meta_description %}{% if job.summary %}{{ job.summary|truncatechars:150 }} {% else %}{{ job.title }} at {{ job.company }} in {{ job.location }}. {% endif %}{% if job.salary_min and job.salary_max %}Salary: {{ job.currency|default:"USD" }} {{ job.salary_min|intcomma }}–{{ job.salary_max|intcomma }}. {% endif %}Apply now.{% endblock %}
 {% block og_tags %}
 <meta property="og:title" content="{{ job.title }} at {{ job.company }}">
-<meta property="og:description" content="{{ job.title }} position at {{ job.company }} in {{ job.location }}. Apply now on TechJobsData.">
-<meta property="og:image" content="https://techjobsdata.com/static/img/logo.png">
+<meta property="og:description" content="{% if job.summary %}{{ job.summary|truncatechars:180 }}{% else %}{{ job.title }} position at {{ job.company }} in {{ job.location }}. Apply now on TechJobsData.{% endif %}">
+<meta property="og:image" content="{% if job.company_logo %}{{ job.company_logo }}{% else %}https://techjobsdata.com/static/img/logo.png{% endif %}">
 <meta property="og:url" content="{{ request.build_absolute_uri }}">
 {% endblock %}
 
@@ -24,9 +24,20 @@
     "value": "{{ job.id }}"
   },
   "datePosted": "{{ job.posted_at|date:'Y-m-d' }}",
+  {% with expiry=job.posted_at|valid_through %}{% if expiry %}"validThrough": "{{ expiry }}",
+  {% endif %}{% endwith %}
+  {% with emp=job.employment_type|schema_employment_type %}{% if emp %}"employmentType": "{{ emp }}",
+  {% endif %}{% endwith %}
+  {% if job.remote_type == 'Remote' %}"jobLocationType": "TELECOMMUTE",
+  {% endif %}
+  {% if job.skills %}"skills": "{% for skill in job.skills %}{{ skill|escapejs }}{% if not forloop.last %}, {% endif %}{% endfor %}",
+  {% endif %}
+  {% if job.category and job.category != 'Other' %}"occupationalCategory": "{{ job.category|escapejs }}",
+  {% endif %}
   "hiringOrganization": {
     "@type": "Organization",
-    "name": "{{ job.company|escapejs }}"
+    "name": "{{ job.company|escapejs }}"{% if job.company_logo %},
+    "logo": "{{ job.company_logo|escapejs }}"{% endif %}
   },
   "jobLocation": {
     "@type": "Place",
@@ -47,17 +58,37 @@
   }{% endif %}
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://techjobsdata.com/"},
+    {"@type": "ListItem", "position": 2, "name": "Jobs", "item": "https://techjobsdata.com{% url 'job_list' %}"},
+    {% if job.category and job.category != 'Other' %}{"@type": "ListItem", "position": 3, "name": "{{ job.category|escapejs }}", "item": "https://techjobsdata.com{% url 'job_list' %}?category={{ job.category|urlencode }}"},
+    {"@type": "ListItem", "position": 4, "name": "{{ job.title|escapejs }}"}
+    {% else %}{"@type": "ListItem", "position": 3, "name": "{{ job.title|escapejs }}"}
+    {% endif %}
+  ]
+}
+</script>
 {% endblock %}
 
 {% block content %}
     <div class="max-w-4xl mx-auto py-12 sm:py-20 px-4">
-        <div class="mb-6">
-            <a href="{% url 'job_list' %}"
-               class="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors group">
-                <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                Back to Jobs
-            </a>
-        </div>
+        <nav aria-label="Breadcrumb" class="mb-6">
+            <ol class="flex flex-wrap items-center gap-1.5 text-sm text-slate-400">
+                <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+                <li class="text-slate-600">/</li>
+                <li><a href="{% url 'job_list' %}" class="hover:text-white transition-colors">Jobs</a></li>
+                {% if job.category and job.category != 'Other' %}
+                <li class="text-slate-600">/</li>
+                <li><a href="{% url 'job_list' %}?category={{ job.category|urlencode }}" class="hover:text-white transition-colors">{{ job.category }}</a></li>
+                {% endif %}
+                <li class="text-slate-600">/</li>
+                <li class="text-slate-500 truncate max-w-[14rem] sm:max-w-xs" aria-current="page">{{ job.title }}</li>
+            </ol>
+        </nav>
 
         <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-sm relative overflow-hidden">
             <div class="absolute top-0 left-0 right-0 h-1

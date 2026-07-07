@@ -22,6 +22,8 @@
     <meta name="twitter:card" content="summary">
 
     <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet"/>
@@ -59,6 +61,22 @@
           }
         }
     </script>
+    <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "TechJobsData",
+          "url": "https://techjobsdata.com",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://techjobsdata.com/jobs/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+    </script>
     <style>
         /* Twilight Grid Background */
         body {
@@ -71,6 +89,13 @@
 
         html {
             scroll-behavior: smooth;
+        }
+
+        /* Dim job results while an HTMX search/pagination request is in flight */
+        #job-results-container.htmx-request {
+            opacity: 0.45;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
         }
     </style>
 </head>
