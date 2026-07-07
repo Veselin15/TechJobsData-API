@@ -34,6 +34,8 @@ API_THROTTLES = [BusinessTierThrottle, ProTierThrottle, FreeTierThrottle]
             name='ordering',
             description="Sort results. One of: posted_at, -posted_at, "
                         "salary_min, -salary_min, salary_max, -salary_max, "
+                        "salary_min_usd, -salary_min_usd, salary_max_usd, "
+                        "-salary_max_usd, quality_score, -quality_score, "
                         "created_at, -created_at.",
             required=False, type=str,
         ),
@@ -43,7 +45,9 @@ class JobListAPI(generics.ListAPIView):
     serializer_class = JobSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = JobFilter
-    ordering_fields = ['posted_at', 'salary_min', 'salary_max', 'created_at']
+    ordering_fields = ['posted_at', 'salary_min', 'salary_max',
+                       'salary_min_usd', 'salary_max_usd',
+                       'quality_score', 'created_at']
 
     # Allow both JSON (for API) and HTML (for Browser)
     renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
@@ -125,7 +129,7 @@ class JobStatsAPI(APIView):
     """
     throttle_classes = API_THROTTLES
 
-    CACHE_KEY = 'job_stats_v1'
+    CACHE_KEY = 'job_stats_v2'
     CACHE_TTL = 60 * 15
 
     @extend_schema(responses={200: dict})
@@ -147,17 +151,27 @@ class JobStatsAPI(APIView):
             row['seniority']: row['count']
             for row in jobs.values('seniority').annotate(count=Count('id')).order_by('-count')
         }
+        by_category = {
+            row['category']: row['count']
+            for row in jobs.exclude(category='')
+            .values('category').annotate(count=Count('id')).order_by('-count')
+        }
+        by_remote_type = {
+            row['remote_type']: row['count']
+            for row in jobs.values('remote_type').annotate(count=Count('id')).order_by('-count')
+        }
 
         skill_counter = Counter()
         for skills in jobs.exclude(skills=[]).values_list('skills', flat=True):
             if isinstance(skills, list):
                 skill_counter.update(skills)
 
-        salary_stats = jobs.filter(salary_min__isnull=False).aggregate(
-            avg_salary_min=Avg('salary_min'),
-            avg_salary_max=Avg('salary_max'),
-            min_salary=Min('salary_min'),
-            max_salary=Max('salary_max'),
+        # USD-normalized aggregates: comparable across currencies
+        salary_stats = jobs.filter(salary_min_usd__isnull=False).aggregate(
+            avg_salary_min=Avg('salary_min_usd'),
+            avg_salary_max=Avg('salary_max_usd'),
+            min_salary=Min('salary_min_usd'),
+            max_salary=Max('salary_max_usd'),
         )
 
         return {
@@ -165,15 +179,18 @@ class JobStatsAPI(APIView):
             'jobs_with_salary': jobs.filter(salary_min__isnull=False).count(),
             'by_source': by_source,
             'by_seniority': by_seniority,
+            'by_category': by_category,
+            'by_remote_type': by_remote_type,
             'top_skills': [
                 {'skill': skill, 'count': count}
                 for skill, count in skill_counter.most_common(25)
             ],
-            'salary': {
+            'salary_usd': {
                 'avg_min': round(salary_stats['avg_salary_min']) if salary_stats['avg_salary_min'] else None,
                 'avg_max': round(salary_stats['avg_salary_max']) if salary_stats['avg_salary_max'] else None,
                 'lowest': salary_stats['min_salary'],
                 'highest': salary_stats['max_salary'],
+                'note': 'Annualized and converted to USD at fixed reference rates.',
             },
         }
 

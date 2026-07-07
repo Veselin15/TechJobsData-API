@@ -30,6 +30,16 @@ class JobFilter(django_filters.FilterSet):
     # Remote-only convenience flag
     remote = django_filters.BooleanFilter(method='filter_remote')
 
+    # Enrichment filters
+    remote_type = django_filters.CharFilter(lookup_expr='iexact')
+    employment_type = django_filters.CharFilter(lookup_expr='iexact')
+    category = django_filters.CharFilter(lookup_expr='iexact')
+    min_quality = django_filters.NumberFilter(field_name='quality_score', lookup_expr='gte')
+
+    # USD-normalized salary filters (comparable across currencies)
+    salary_min_usd = django_filters.NumberFilter(field_name='salary_min_usd', lookup_expr='gte')
+    salary_max_usd = django_filters.NumberFilter(field_name='salary_max_usd', lookup_expr='lte')
+
     # Custom Skills Filter (search inside JSON list, comma-separated = AND)
     skills = django_filters.CharFilter(method='filter_skills')
 
@@ -39,6 +49,8 @@ class JobFilter(django_filters.FilterSet):
             'title', 'company', 'location', 'skills', 'seniority',
             'salary_min', 'salary_max', 'has_salary', 'source', 'currency',
             'posted_after', 'posted_before', 'posted_within', 'remote',
+            'remote_type', 'employment_type', 'category', 'min_quality',
+            'salary_min_usd', 'salary_max_usd',
         ]
 
     def filter_skills(self, queryset, name, value):
@@ -67,10 +79,13 @@ class JobFilter(django_filters.FilterSet):
         return queryset.filter(posted_at__gte=cutoff)
 
     def filter_remote(self, queryset, name, value):
+        # Prefer the detected remote_type; fall back to location text for
+        # rows that predate the enrichment fields
+        remote_q = Q(remote_type='Remote') | Q(location__icontains='remote')
         if value is True:
-            return queryset.filter(location__icontains='remote')
+            return queryset.filter(remote_q)
         if value is False:
-            return queryset.exclude(location__icontains='remote')
+            return queryset.exclude(remote_q)
         return queryset
 
     def filter_has_salary(self, queryset, name, value):

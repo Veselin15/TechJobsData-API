@@ -16,9 +16,12 @@ class JobSerializer(serializers.ModelSerializer):
         model = Job
         fields = [
             'id', 'title', 'company', 'location', 'url', 'source',
-            'posted_at', 'created_at', 'description', 'skills', 'seniority',
+            'posted_at', 'created_at', 'description', 'summary',
+            'skills', 'seniority', 'category',
+            'remote_type', 'employment_type', 'company_logo',
             'salary_min', 'salary_max', 'currency',
-            'days_ago', 'salary_display',
+            'salary_min_usd', 'salary_max_usd',
+            'quality_score', 'days_ago', 'salary_display',
         ]
 
     def get_days_ago(self, obj):
