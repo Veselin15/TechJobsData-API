@@ -15,6 +15,15 @@ class RemotiveSpider(scrapy.Spider):
 
     API_URL = "https://remotive.com/api/remote-jobs?category=software-dev&limit=400"
 
+    # Remotive's structured job_type values -> our employment labels
+    JOB_TYPE_MAP = {
+        'full_time': 'Full-time',
+        'part_time': 'Part-time',
+        'contract': 'Contract',
+        'freelance': 'Freelance',
+        'internship': 'Internship',
+    }
+
     async def start(self):
         yield scrapy.Request(
             self.API_URL,
@@ -48,6 +57,10 @@ class RemotiveSpider(scrapy.Spider):
             # Salary comes as free text like "$90k - $120k" — reuse our parser
             salary_min, salary_max, currency = parse_salary(job.get('salary') or "")
 
+            logo = job.get('company_logo') or job.get('company_logo_url') or ""
+            if not isinstance(logo, str) or not logo.startswith('http'):
+                logo = ""
+
             yield JobItem(
                 title=title,
                 company=job.get('company_name') or "Unknown",
@@ -60,4 +73,7 @@ class RemotiveSpider(scrapy.Spider):
                 salary_min=salary_min,
                 salary_max=salary_max,
                 currency=currency,
+                company_logo=logo,
+                employment_type=self.JOB_TYPE_MAP.get(job.get('job_type') or ''),
+                remote_type="Remote",  # Remotive lists remote jobs only
             )

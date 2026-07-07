@@ -65,7 +65,7 @@ def run_scrapers(keyword='Python', location='Europe'):
 
     # Fast API-based feeds first — they answer in seconds and refresh
     # the dataset broadly before the slower keyword-targeted scrape runs.
-    for quick_spider in ["wwr", "remotive", "remoteok"]:
+    for quick_spider in ["wwr", "remotive", "remoteok", "jobicy"]:
         try:
             logger.info("🚀 [On-Demand] Starting %s Scrape...", quick_spider)
             _run_scrapy([quick_spider], timeout=90, label=quick_spider)
@@ -120,6 +120,7 @@ def run_bulk_scrape():
     run_spider("remoteok")
     run_spider("remotive")
     run_spider("arbeitnow")
+    run_spider("jobicy")
     run_spider("pyjobs")
     run_spider("themuse", timeout=300)
     run_spider("glassdoor", timeout=600)

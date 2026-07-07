@@ -8,6 +8,11 @@ class TheMuseSpider(scrapy.Spider):
     name = "themuse"
     allowed_domains = ["themuse.com"]
 
+    # The feed goes hundreds of pages deep; newest-first means the first
+    # pages carry all the fresh listings. Without a cap the crawl always
+    # dies on the task timeout instead of finishing cleanly.
+    MAX_PAGES = 10
+
     # Map The Muse's level short_names onto our seniority buckets
     LEVEL_MAP = {
         'internship': 'Junior',
@@ -72,7 +77,7 @@ class TheMuseSpider(scrapy.Spider):
         current_page = data.get('page', 0)
         page_count = data.get('page_count', 0)
 
-        if current_page < page_count - 1:
+        if current_page < min(page_count - 1, self.MAX_PAGES - 1):
             next_page = current_page + 1
             next_url = f"https://www.themuse.com/api/public/jobs?category=Software%20Engineering&page={next_page}&descending=true"
 

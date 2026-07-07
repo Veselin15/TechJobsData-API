@@ -54,6 +54,10 @@ class RemoteOKSpider(scrapy.Spider):
             salary_min = entry.get('salary_min') or None
             salary_max = entry.get('salary_max') or None
 
+            logo = entry.get('company_logo') or entry.get('logo') or ""
+            if not isinstance(logo, str) or not logo.startswith('http'):
+                logo = ""
+
             yield JobItem(
                 title=title,
                 company=entry.get('company') or "RemoteOK",
@@ -66,4 +70,6 @@ class RemoteOKSpider(scrapy.Spider):
                 salary_min=salary_min,
                 salary_max=salary_max,
                 currency="USD" if (salary_min or salary_max) else None,
+                company_logo=logo,
+                remote_type="Remote",  # RemoteOK lists remote jobs only
             )

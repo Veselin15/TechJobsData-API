@@ -13,3 +13,6 @@ class JobItem(scrapy.Item):
     salary_min = scrapy.Field()
     salary_max = scrapy.Field()
     currency = scrapy.Field()
+    company_logo = scrapy.Field()
+    employment_type = scrapy.Field()
+    remote_type = scrapy.Field()

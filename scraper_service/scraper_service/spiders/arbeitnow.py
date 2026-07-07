@@ -47,6 +47,18 @@ class ArbeitnowSpider(scrapy.Spider):
             if job.get('remote'):
                 location = f"Remote — {location}" if location else "Remote"
 
+            # job_types is a list like ["Full-time", "Home Office"] — take the
+            # first value that maps onto one of our employment labels
+            type_map = {'full-time': 'Full-time', 'full time': 'Full-time',
+                        'part-time': 'Part-time', 'part time': 'Part-time',
+                        'contract': 'Contract', 'freelance': 'Freelance',
+                        'internship': 'Internship', 'intern': 'Internship'}
+            employment = None
+            for jt in job.get('job_types') or []:
+                employment = type_map.get(str(jt).strip().lower())
+                if employment:
+                    break
+
             yield JobItem(
                 title=title,
                 company=job.get('company_name') or "Unknown",
@@ -59,6 +71,8 @@ class ArbeitnowSpider(scrapy.Spider):
                 salary_min=None,
                 salary_max=None,
                 currency=None,
+                employment_type=employment,
+                remote_type="Remote" if job.get('remote') else None,
             )
 
         # Follow pagination (capped, the feed goes very deep)

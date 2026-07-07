@@ -12,9 +12,21 @@ SPIDER_MODULES = ["scraper_service.spiders"]
 NEWSPIDER_MODULE = "scraper_service.spiders"
 
 # 2. Concurrency & Politeness
+# AutoThrottle adapts the delay per-domain from observed latency: API feeds
+# answer fast (so crawls finish inside their Celery timeouts) while slow or
+# throttling sites automatically get backed off.
 ROBOTSTXT_OBEY = False
-DOWNLOAD_DELAY = 3
-CONCURRENT_REQUESTS = 1
+DOWNLOAD_DELAY = 1
+CONCURRENT_REQUESTS = 2
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 1
+AUTOTHROTTLE_MAX_DELAY = 15
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+
+# Fail fast instead of hanging a whole Celery task on one dead host
+DOWNLOAD_TIMEOUT = 30
+RETRY_TIMES = 2
+RETRY_HTTP_CODES = [429, 500, 502, 503, 504, 522, 524]
 
 # 3. Output
 FEED_EXPORT_ENCODING = "utf-8"

@@ -5,7 +5,12 @@ from twisted.internet import threads
 from scrapy.exceptions import DropItem
 from jobs.models import Job
 
-from .utils import parse_salary, extract_skills, extract_seniority, clean_html_text
+from .utils import (
+    parse_salary, extract_skills, extract_seniority, clean_html_text,
+    clean_title, canonicalize_url, normalize_skills, detect_remote_type,
+    detect_employment_type, classify_role, to_usd, make_summary,
+    compute_quality_score,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +34,11 @@ class ScraperServicePipeline:
             raise
 
     def save_job(self, item):
-        url = item.get('url')
+        url = canonicalize_url(item.get('url'))
         if not url:
             return None
 
-        title = (item.get('title') or "Unknown Title").strip()
+        title = clean_title(item.get('title')) or "Unknown Title"
         company = (item.get('company') or "Unknown Company").strip()
         location = (item.get('location') or "Remote").strip()
         source = item.get('source') or "Unknown"
@@ -54,20 +59,38 @@ class ScraperServicePipeline:
             min_sal, max_sal, curr = parse_salary(text_to_scan)
         elif not curr:
             curr = "USD"
+        if min_sal is not None and max_sal is not None and min_sal > max_sal:
+            min_sal, max_sal = max_sal, min_sal
 
-        # Skills: union of source-provided tags and our own extraction,
-        # deduped case-insensitively (our canonical capitalization wins)
-        merged_skills = {
-            s.strip().lower(): s.strip()
-            for s in (item.get('skills') or [])
-            if isinstance(s, str) and s.strip()
-        }
-        for s in extract_skills(text_to_scan):
-            merged_skills[s.lower()] = s
-        skills_found = sorted(merged_skills.values(), key=str.lower)
+        # Skills: source tags + our own extraction, aliased to canonical
+        # names, noise-filtered and deduplicated
+        skills_found = normalize_skills(
+            item.get('skills') or [],
+            extract_skills(text_to_scan),
+        )
 
         # Seniority: source-provided value wins over heuristics
         seniority_level = item.get('seniority') or extract_seniority(title, description)
+
+        # --- Enrichment: structure the source usually doesn't provide ---
+        remote_type = item.get('remote_type') or detect_remote_type(title, location, description)
+        employment_type = item.get('employment_type') or detect_employment_type(title, description)
+        category = classify_role(title, skills_found)
+        summary = make_summary(description)
+        company_logo = (item.get('company_logo') or "").strip()
+
+        posted_at = item.get('posted_at')
+        quality_score = compute_quality_score(
+            description=description,
+            skills=skills_found,
+            salary_min=min_sal,
+            salary_max=max_sal,
+            seniority=seniority_level,
+            remote_type=remote_type,
+            employment_type=employment_type,
+            company_logo=company_logo,
+            posted_at=posted_at,
+        )
 
         job, created = Job.objects.update_or_create(
             url=url[:2000],
@@ -76,13 +99,21 @@ class ScraperServicePipeline:
                 'company': company[:500],
                 'location': location[:500],
                 'source': source[:50],
-                'posted_at': item.get('posted_at'),
+                'posted_at': posted_at,
                 'description': description,
                 'skills': skills_found,
                 'seniority': seniority_level[:50],
                 'salary_min': int(min_sal) if min_sal is not None else None,
                 'salary_max': int(max_sal) if max_sal is not None else None,
                 'currency': curr,
+                'company_logo': company_logo[:2000],
+                'remote_type': remote_type[:20],
+                'employment_type': employment_type[:20],
+                'category': category[:40],
+                'summary': summary[:300],
+                'quality_score': quality_score,
+                'salary_min_usd': to_usd(min_sal, curr),
+                'salary_max_usd': to_usd(max_sal, curr),
             }
         )
         return job
