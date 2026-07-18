@@ -11,6 +11,7 @@
     <title>{% block title %}TechJobsData — Real-Time Tech Jobs API{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}The #1 API for real-time remote tech job data. Get structured listings from LinkedIn, Glassdoor, and more with a single REST call.{% endblock %}">
     <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+    {% if noindex_page %}<meta name="robots" content="noindex, follow">{% endif %}
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="TechJobsData">
@@ -153,6 +154,10 @@
                     <li>
                         <a href="{% url 'insights' %}"
                            class="block py-2 px-3 text-slate-300 rounded hover:bg-slate-700 md:hover:bg-transparent md:hover:text-white md:p-0 transition-colors">Insights</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'guide_list' %}"
+                           class="block py-2 px-3 text-slate-300 rounded hover:bg-slate-700 md:hover:bg-transparent md:hover:text-white md:p-0 transition-colors">Guides</a>
                     </li>
                     <li>
                         <a href="{% url 'developer_guide' %}"

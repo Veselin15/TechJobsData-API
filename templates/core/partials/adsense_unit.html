@@ -1,4 +1,4 @@
-{% if show_ads and adsense_client %}
+{% if show_ads and adsense_client and adsense_units_enabled %}
 <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-4 shadow-xl backdrop-blur-sm relative overflow-hidden flex justify-center min-h-[{{ min_height|default:'90' }}px] {{ wrapper_class|default:'' }}">
     <span class="absolute top-2 right-3 text-[10px] uppercase font-bold text-slate-500 tracking-widest z-10">Sponsored</span>
     <ins class="adsbygoogle"

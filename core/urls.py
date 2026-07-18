@@ -9,6 +9,10 @@ urlpatterns = [
     path('developers/', views.developer_guide, name='developer_guide'),
     path('insights/', views.insights, name='insights'),
 
+    # --- Career Guides (editorial content) ---
+    path('guides/', views.guide_list, name='guide_list'),
+    path('guides/<slug:slug>/', views.guide_detail, name='guide_detail'),
+
     # --- Company & Legal Pages ---
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),

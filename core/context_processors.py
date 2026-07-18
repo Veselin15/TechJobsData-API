@@ -26,6 +26,7 @@ def adsense_context(request):
         'show_ads': show_ads,
         'adsense_client': getattr(django_settings, 'ADSENSE_CLIENT_ID', ''),
         'adsense_slots': getattr(django_settings, 'ADSENSE_SLOTS', {}),
+        'adsense_units_enabled': getattr(django_settings, 'ADSENSE_UNITS_ENABLED', False),
     }
 
 

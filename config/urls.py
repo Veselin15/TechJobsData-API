@@ -2,11 +2,12 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.contrib.sitemaps.views import sitemap
-from jobs.sitemaps import JobSitemap, StaticPagesSitemap
+from jobs.sitemaps import GuideSitemap, JobSitemap, StaticPagesSitemap
 from django.views.generic import TemplateView
 
 sitemaps = {
     'static': StaticPagesSitemap,
+    'guides': GuideSitemap,
     'jobs': JobSitemap,
 }
 

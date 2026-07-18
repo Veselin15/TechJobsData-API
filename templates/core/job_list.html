@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}{% if query %}{{ query }} Jobs{% if location %} in {{ location }}{% endif %} — {% elif category %}{{ category }} Jobs — {% endif %}Browse Tech Jobs | TechJobsData{% endblock %}
+{% block canonical %}{{ canonical_url|default:request.build_absolute_uri }}{% endblock %}
 {% block meta_description %}{% if query %}Find {{ query }} jobs{% if location %} in {{ location }}{% endif %}. {% elif category %}Browse {{ total_count|default:"" }} open {{ category }} positions. {% endif %}Browse {{ total_count|default:"thousands of" }} remote tech job listings from LinkedIn, Glassdoor, and more.{% endblock %}
 {% block og_tags %}
 <meta property="og:title" content="{% if query %}{{ query }} Jobs{% else %}Browse Tech Jobs{% endif %} | TechJobsData">

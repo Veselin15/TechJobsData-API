@@ -1,9 +1,16 @@
 User-agent: *
 Allow: /
 
-# Block the dashboard/admin to save crawler budget
+# Block account/utility pages and the API to save crawler budget
 Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /api/
+Disallow: /login/
+Disallow: /register/
+Disallow: /accounts/
+Disallow: /password-reset
+Disallow: /toggle-save/
+Disallow: /subscribe/
+Disallow: /jobs/suggest/
 
 Sitemap: https://techjobsdata.com/sitemap.xml

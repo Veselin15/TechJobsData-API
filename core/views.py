@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -7,13 +8,15 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth import login
 from django.contrib import messages
 from django.core.cache import cache
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F, Q
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework_api_key.models import APIKey
 
 from .forms import RegisterForm  # Assuming you renamed your form or use the one from before
+from .guides import GUIDES, GUIDES_BY_SLUG
 from .models import JobAlert, SavedJob
 from jobs.models import Job
 from jobs.search import annotate_headlines, search_jobs
@@ -87,6 +90,21 @@ def privacy(request):
 def terms(request):
     """Standalone, crawlable terms of service."""
     return render(request, 'core/terms.html')
+
+
+def guide_list(request):
+    """Index of all career guides."""
+    return render(request, 'core/guides/guide_list.html', {'guides': GUIDES})
+
+
+def guide_detail(request, slug):
+    """A single hand-written career guide."""
+    guide = GUIDES_BY_SLUG.get(slug)
+    if guide is None:
+        raise Http404("No such guide")
+    others = [g for g in GUIDES if g['slug'] != slug][:3]
+    return render(request, f"core/guides/{slug}.html",
+                  {'guide': guide, 'other_guides': others})
 
 
 INSIGHTS_CACHE_KEY = 'market_insights_v1'
@@ -352,6 +370,17 @@ def job_list(request):
     has_filters = any([source, seniority, category, min_salary, posted_within, remote_only]) \
         or bool(sort_param)
 
+    # Search results and filter permutations are useful to visitors but are
+    # thin, near-duplicate pages to a crawler (Google's spam policy calls
+    # out indexable internal search). Keep them out of the index and point
+    # the canonical at the clean listing (category hub pages stay indexable).
+    noindex_page = any([query, location, source, seniority, min_salary,
+                        posted_within, remote_only]) or bool(sort_param)
+    canonical_path = reverse('job_list')
+    if category:
+        canonical_path += '?' + urlencode({'category': category})
+    canonical_url = request.build_absolute_uri(canonical_path)
+
     context = {
         'page_obj': page_obj,
         'query': query,
@@ -376,6 +405,8 @@ def job_list(request):
         'qs_no_category': qs_no_category,
         'has_filters': has_filters,
         'facet_counts': facet_counts,
+        'noindex_page': noindex_page,
+        'canonical_url': canonical_url,
         # Search transparency: corrections and fallbacks, for the notice bar
         'corrected_query': search_meta.corrected_query if search_meta else None,
         'search_suggestion': search_meta.suggestion if search_meta else None,
@@ -462,7 +493,16 @@ def job_detail(request, pk):
             .order_by('-quality_score', '-posted_at')[:4 - len(similar)]
         similar.extend(filler)
 
-    return render(request, 'core/job_detail.html', {'job': job, 'similar_jobs': similar})
+    # Listings with no description (or barely any data) are thin pages —
+    # useful behind a click, but exactly what "low value content" reviews
+    # flag when indexed by the thousand. Keep them crawlable but unindexed.
+    is_thin = not (job.description or '').strip() or job.quality_score < 35
+
+    return render(request, 'core/job_detail.html', {
+        'job': job,
+        'similar_jobs': similar,
+        'noindex_page': is_thin,
+    })
 
 
 # --- 4. User Dashboard & API Keys ---

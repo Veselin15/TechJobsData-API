@@ -272,6 +272,13 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # --- GOOGLE ADSENSE ---
 ADSENSE_CLIENT_ID = 'ca-pub-1995258824270781'
+# Visible ad units stay OFF until the site passes AdSense review: unapproved
+# slots render as empty framed "Sponsored" boxes, which itself looks like
+# low-value/made-for-ads layout to a reviewer. The head script stays loaded
+# (site verification); flip ADSENSE_UNITS_ENABLED=true in .env once approved.
+ADSENSE_UNITS_ENABLED = os.environ.get(
+    'ADSENSE_UNITS_ENABLED', 'False'
+).lower() in ('1', 'true', 'yes')
 ADSENSE_SLOTS = {
     'banner': '6181551539',
     'sidebar': '6181551539',
@@ -280,7 +287,8 @@ ADSENSE_SLOTS = {
 # Pages allowed to serve ads. Job detail pages are deliberately excluded:
 # their descriptions are replicated from source platforms, and Google's
 # publisher policy disallows ads on replicated content.
-ADSENSE_CONTENT_PAGES = {'index', 'job_list', 'insights', 'developer_guide'}
+ADSENSE_CONTENT_PAGES = {'index', 'job_list', 'insights', 'developer_guide',
+                         'guide_list', 'guide_detail'}
 
 # SECURITY: Trust the HTTPS signal from the proxy (Cloudflare/Docker)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
