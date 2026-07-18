@@ -116,6 +116,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Pin the historical default explicitly: silences the W042 warning and stops
+# makemigrations from ever proposing a disruptive AutoField -> BigAutoField
+# rewrite of existing tables.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
