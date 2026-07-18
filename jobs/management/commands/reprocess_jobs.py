@@ -24,6 +24,7 @@ SCRAPER_ROOT = Path(settings.BASE_DIR) / 'scraper_service'
 if str(SCRAPER_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRAPER_ROOT))
 
+from scraper_service.constants import AMBIGUOUS_PROSE_SKILLS  # noqa: E402
 from scraper_service.utils import (  # noqa: E402
     clean_html_text, clean_title, extract_skills, extract_seniority,
     normalize_skills, detect_remote_type, detect_employment_type,
@@ -75,7 +76,17 @@ class Command(BaseCommand):
         title = clean_title(job.title) or job.title
         text_to_scan = f"{title} {job.company} {description}"
 
-        skills = normalize_skills(job.skills or [], extract_skills(text_to_scan))
+        extracted = extract_skills(text_to_scan)
+        # Stored skills replay as "trusted" tags here, which would preserve
+        # historical false positives ("Go" from 'das Go geben'). Ambiguous
+        # everyday-word skills must be re-confirmed by the guarded extractor.
+        stored = [
+            s for s in (job.skills or [])
+            if not isinstance(s, str)
+            or s.lower() not in AMBIGUOUS_PROSE_SKILLS
+            or s in extracted
+        ]
+        skills = normalize_skills(stored, extracted)
 
         seniority = job.seniority
         if not seniority or seniority == "Not Specified":

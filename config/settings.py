@@ -125,8 +125,8 @@ DATABASES = {
         'NAME': os.environ.get('POSTGRES_DB', 'remotejobs'),
         'USER': os.environ.get('POSTGRES_USER', 'user'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'password'),
-        'HOST': 'db',
-        'PORT': 5432,
+        'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+        'PORT': int(os.environ.get('POSTGRES_PORT', '5432')),
     }
 }
 
@@ -192,10 +192,10 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,  # Increase default slightly (optional)
-    'PAGE_SIZE_QUERY_PARAM': 'page_size',  # Allow users to control it
-    'MAX_PAGE_SIZE': 50,
+    # PAGE_SIZE_QUERY_PARAM / MAX_PAGE_SIZE are not real DRF settings — the
+    # ?page_size= support lives in jobs.pagination.JobPagination.
+    'DEFAULT_PAGINATION_CLASS': 'jobs.pagination.JobPagination',
+    'PAGE_SIZE': 20,
 }
 
 SPECTACULAR_SETTINGS = {

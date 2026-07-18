@@ -9,8 +9,8 @@ from django.core.cache import cache
 from django.db.models import Avg, Count, Max, Min
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from .models import Job
+from .search import search_jobs
 from .serializers import JobSerializer
 from .tasks import run_scrapers
 from .throttles import FreeTierThrottle, ProTierThrottle, BusinessTierThrottle
@@ -57,27 +57,18 @@ class JobListAPI(generics.ListAPIView):
 
     def get_queryset(self):
         """
-        Uses Postgres Full-Text Search if the 'search' parameter is present.
-        Otherwise, returns the standard list.
+        Delegates to the shared layered search engine (jobs.search): stored
+        weighted tsvector, synonym expansion (js -> JavaScript), typo
+        correction, trigram fallback. Results are relevance-ranked; an
+        explicit ?ordering= still wins (applied by OrderingFilter).
         """
         queryset = Job.objects.all().order_by('-posted_at', '-id')
 
         search_term = self.request.query_params.get('search', None)
 
         if search_term:
-            # Weight A: title (most important); B: company/skills; C: description
-            vector = SearchVector('title', weight='A') + \
-                     SearchVector('company', weight='B') + \
-                     SearchVector('skills', weight='B') + \
-                     SearchVector('description', weight='C')
-
-            # 'websearch' understands quoted phrases, OR and -negation,
-            # and still strips stop words / applies stemming.
-            query = SearchQuery(search_term, search_type='websearch')
-
-            queryset = queryset.annotate(
-                rank=SearchRank(vector, query)
-            ).filter(rank__gte=0.01).order_by('-rank', '-posted_at')
+            result = search_jobs(Job.objects.all(), search_term)
+            queryset = result.queryset.order_by('-rank', '-posted_at', '-id')
 
         return queryset
 
@@ -100,7 +91,11 @@ class JobListAPI(generics.ListAPIView):
 
                 if not is_already_scraping:
                     cache.set(lock_key, "active", timeout=900)  # Lock for 15 mins
-                    run_scrapers.delay(keyword=term_to_scrape, location="Europe")
+                    try:
+                        run_scrapers.delay(keyword=term_to_scrape, location="Europe")
+                    except Exception:
+                        # Broker down must not turn an empty result into a 500
+                        cache.delete(lock_key)
 
         # --- LOGIC: CONTENT NEGOTIATION ---
         # If HTMX/Browser, return HTML
@@ -212,7 +207,13 @@ class ScrapeTriggerAPI(APIView):
             keyword = serializer.validated_data['keyword']
             location = serializer.validated_data['location']
 
-            run_scrapers.delay(keyword, location)
+            try:
+                run_scrapers.delay(keyword, location)
+            except Exception:
+                return Response(
+                    {"message": "Scraping queue is unavailable, try again later."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
 
             return Response({
                 "message": "Scraper started successfully",

@@ -20,7 +20,9 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
 
     # 3. The Jobs API
-    # (We mount this at 'api/', so it finds 'api/jobs/' and 'api/scrape/')
+    # /api/v1/ is the documented prefix (README, developer guide, schema);
+    # bare /api/ stays for backwards compatibility.
+    path('api/v1/', include('jobs.urls')),
     path('api/', include('jobs.urls')),
 
     # 4. Payments API

@@ -16,6 +16,7 @@ from rest_framework_api_key.models import APIKey
 from .forms import RegisterForm  # Assuming you renamed your form or use the one from before
 from .models import JobAlert, SavedJob
 from jobs.models import Job
+from jobs.search import annotate_headlines, search_jobs
 
 
 # --- 1. Main Pages ---
@@ -214,13 +215,19 @@ DATE_OPTIONS = [
     (30, 'Last month'),
 ]
 
+# '' = automatic: relevance when a query is present, newest otherwise. The
+# select always submits a value, so the auto default must be a real option.
 SORT_OPTIONS = [
+    ('', 'Best match'),
     ('newest', 'Newest first'),
-    ('best', 'Best match'),
     ('oldest', 'Oldest first'),
     ('salary_high', 'Highest salary'),
     ('company', 'Company A–Z'),
 ]
+
+# Facet fields whose filter can be lifted to count the other options
+# ("what would I get if I picked LinkedIn instead?")
+FACET_FIELDS = {'source': 'source', 'seniority': 'seniority', 'category': 'category'}
 
 
 def job_list(request):
@@ -232,37 +239,46 @@ def job_list(request):
     min_salary = request.GET.get('min_salary', '')
     posted_within = request.GET.get('posted_within', '')
     remote_only = request.GET.get('remote') == '1'
-    sort = request.GET.get('sort', 'newest')
+    # With a query, relevance is the natural default; without one, freshness
+    sort_param = request.GET.get('sort', '')
+    sort = sort_param or ('best' if query else 'newest')
 
+    # 1. Search first: the layered engine (FTS -> prefix -> typo-fix ->
+    #    trigram -> substring) picks its fallback based on the query alone,
+    #    so a typo is corrected even when active filters would hide results.
+    search_meta = None
     jobs = Job.objects.all()
-
     if query:
-        jobs = jobs.filter(
-            Q(title__icontains=query) |
-            Q(skills__icontains=query) |
-            Q(company__icontains=query)
-        )
+        search_meta = search_jobs(jobs, query)
+        jobs = search_meta.queryset
+
+    # 2. Composable non-search filters. Kept as (name, Q) pairs so facet
+    #    counts below can re-apply "all except mine".
+    filter_qs = {}
     if location:
-        jobs = jobs.filter(location__icontains=location)
+        filter_qs['loc'] = Q(location__icontains=location)
     if source:
-        jobs = jobs.filter(source=source)
+        filter_qs['source'] = Q(source=source)
     if seniority:
-        jobs = jobs.filter(seniority=seniority)
+        filter_qs['seniority'] = Q(seniority=seniority)
     if category:
-        jobs = jobs.filter(category=category)
+        filter_qs['category'] = Q(category=category)
     if remote_only:
         # Detected remote_type first; location text covers pre-enrichment rows
-        jobs = jobs.filter(Q(remote_type='Remote') | Q(location__icontains='remote'))
+        filter_qs['remote'] = Q(remote_type='Remote') | Q(location__icontains='remote')
     if min_salary.isdigit():
         floor = int(min_salary)
         # Compare in USD so a €90k job clears a $75k floor correctly
-        jobs = jobs.filter(
+        filter_qs['min_salary'] = (
             Q(salary_min_usd__gte=floor) | Q(salary_max_usd__gte=floor) |
             Q(salary_min__gte=floor) | Q(salary_max__gte=floor)
         )
     if posted_within.isdigit():
         cutoff = timezone.now().date() - timedelta(days=int(posted_within))
-        jobs = jobs.filter(posted_at__gte=cutoff)
+        filter_qs['posted_within'] = Q(posted_at__gte=cutoff)
+
+    for q_obj in filter_qs.values():
+        jobs = jobs.filter(q_obj)
 
     if sort == 'oldest':
         jobs = jobs.order_by('posted_at', 'id')
@@ -273,12 +289,34 @@ def job_list(request):
     elif sort == 'company':
         jobs = jobs.order_by('company', '-posted_at')
     elif sort == 'best':
-        jobs = jobs.order_by('-quality_score', '-posted_at', '-id')
+        if query and search_meta and search_meta.matched_with != 'none':
+            jobs = jobs.order_by('-rank', '-posted_at', '-id')
+        else:
+            jobs = jobs.order_by('-quality_score', '-posted_at', '-id')
     else:
         sort = 'newest'
         jobs = jobs.order_by('-posted_at', '-id')
 
     total_count = jobs.count()
+
+    # 3. Facet counts: for each facet, count matches with every OTHER active
+    #    filter applied. Powers the "(12)" hints in the filter dropdowns.
+    facet_base = search_meta.queryset if search_meta else Job.objects.all()
+    facet_counts = {}
+    for facet in FACET_FIELDS:
+        fqs = facet_base
+        for name, q_obj in filter_qs.items():
+            if name != facet:
+                fqs = fqs.filter(q_obj)
+        facet_counts[facet] = {
+            row[FACET_FIELDS[facet]]: row['n']
+            for row in fqs.values(FACET_FIELDS[facet]).annotate(n=Count('id'))
+        }
+
+    # 4. Highlight what matched (title + description snippet) — annotated on
+    #    the final queryset so ts_headline only runs for the page's 20 rows.
+    if search_meta is not None:
+        jobs = annotate_headlines(jobs, search_meta.query_obj)
 
     paginator = Paginator(jobs, 20)
     page_number = request.GET.get('page')
@@ -312,7 +350,7 @@ def job_list(request):
     qs_no_category = params_no_cat.urlencode()
 
     has_filters = any([source, seniority, category, min_salary, posted_within, remote_only]) \
-        or sort != 'newest'
+        or bool(sort_param)
 
     context = {
         'page_obj': page_obj,
@@ -324,6 +362,7 @@ def job_list(request):
         'posted_within': posted_within,
         'remote_only': remote_only,
         'sort': sort,
+        'sort_param': sort_param,
         'total_count': total_count,
         'saved_job_ids': saved_job_ids,
         'available_sources': available_sources,
@@ -336,12 +375,72 @@ def job_list(request):
         'qs': qs,
         'qs_no_category': qs_no_category,
         'has_filters': has_filters,
+        'facet_counts': facet_counts,
+        # Search transparency: corrections and fallbacks, for the notice bar
+        'corrected_query': search_meta.corrected_query if search_meta else None,
+        'search_suggestion': search_meta.suggestion if search_meta else None,
+        'matched_with': search_meta.matched_with if search_meta else None,
     }
 
     if request.headers.get('HX-Request'):
         return render(request, 'core/partials/job_results.html', context)
 
     return render(request, 'core/job_list.html', context)
+
+
+SUGGEST_CACHE_KEY = 'job_suggest_index_v1'
+
+
+def _suggest_index():
+    """
+    [(term, kind, count)] for the search autocomplete: every skill, category
+    and company in the dataset with its listing count. Cached; ~a few
+    hundred entries, matched in Python per keystroke.
+    """
+    index = cache.get(SUGGEST_CACHE_KEY)
+    if index is not None:
+        return index
+
+    skill_counter = Counter()
+    for skills in Job.objects.exclude(skills=[]).values_list('skills', flat=True):
+        skill_counter.update(s for s in skills if s)
+
+    index = [(name, 'skill', count) for name, count in skill_counter.most_common()]
+    index += [
+        (row['category'], 'category', row['n'])
+        for row in Job.objects.exclude(category='').exclude(category='Other')
+        .values('category').annotate(n=Count('id')).order_by('-n')
+    ]
+    index += [
+        (row['company'], 'company', row['n'])
+        for row in Job.objects.exclude(company__in=['', 'Unknown Company'])
+        .values('company').annotate(n=Count('id')).order_by('-n')[:400]
+    ]
+    cache.set(SUGGEST_CACHE_KEY, index, 60 * 15)
+    return index
+
+
+def job_suggest(request):
+    """
+    HTMX autocomplete for the search box: prefix matches first, then
+    substring matches, across skills, categories and companies.
+    """
+    term = request.GET.get('q', '').strip().lower()
+    suggestions = []
+    if len(term) >= 2:
+        prefix, contains = [], []
+        for name, kind, count in _suggest_index():
+            low = name.lower()
+            if low.startswith(term):
+                prefix.append((name, kind, count))
+            elif term in low:
+                contains.append((name, kind, count))
+        suggestions = (prefix + contains)[:8]
+
+    return render(request, 'core/partials/search_suggestions.html', {
+        'suggestions': suggestions,
+        'term': term,
+    })
 
 
 def job_detail(request, pk):

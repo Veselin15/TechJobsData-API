@@ -45,9 +45,21 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
                         </div>
-                        <input type="text" name="q" value="{{ query }}"
-                               class="block w-full pl-11 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
+                        <input type="text" name="q" value="{{ query }}" id="search-q"
+                               autocomplete="off" spellcheck="false"
+                               hx-get="{% url 'job_suggest' %}"
+                               hx-trigger="input changed delay:200ms"
+                               hx-target="#search-suggestions"
+                               hx-swap="innerHTML"
+                               hx-push-url="false"
+                               hx-indicator="#suggest-indicator"
+                               class="block w-full pl-11 pr-16 rounded-xl border-white/10 bg-white/5 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 py-3.5 text-sm sm:text-base transition-all hover:bg-white/10"
                                placeholder="Job title, skill, or company">
+                        <div class="absolute inset-y-0 right-0 pr-3.5 hidden md:flex items-center pointer-events-none">
+                            <kbd class="rounded-md border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">/</kbd>
+                        </div>
+                        <span id="suggest-indicator" class="hidden"></span>
+                        <div id="search-suggestions" class="relative"></div>
                     </div>
 
                     <div class="md:col-span-5 relative">
@@ -73,93 +85,8 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-white/5">
-                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Filters:</span>
-
-                    {% if available_sources %}
-                    <select name="source"
-                            onchange="this.form.requestSubmit()"
-                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
-                        <option value="">All Sources</option>
-                        {% for s in available_sources %}
-                            <option value="{{ s }}" {% if s == source %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                    {% endif %}
-
-                    {% if available_seniorities %}
-                    <select name="seniority"
-                            onchange="this.form.requestSubmit()"
-                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
-                        <option value="">All Levels</option>
-                        {% for s in available_seniorities %}
-                            <option value="{{ s }}" {% if s == seniority %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                    {% endif %}
-
-                    <select name="posted_within"
-                            onchange="this.form.requestSubmit()"
-                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
-                        <option value="">Any Time</option>
-                        {% for days, label in date_options %}
-                            <option value="{{ days }}" {% if posted_within == days|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-
-                    <select name="min_salary"
-                            onchange="this.form.requestSubmit()"
-                            class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
-                        <option value="">Any Salary</option>
-                        {% for amount, label in salary_options %}
-                            <option value="{{ amount }}" {% if min_salary == amount|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-
-                    <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none rounded-lg border border-white/10 bg-white/5 py-1.5 px-3 hover:bg-white/10 transition-all {% if remote_only %}border-indigo-500/50 text-indigo-300 bg-indigo-500/10{% endif %}">
-                        <input type="checkbox" name="remote" value="1" {% if remote_only %}checked{% endif %}
-                               onchange="this.form.requestSubmit()"
-                               class="rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 w-4 h-4">
-                        Remote only
-                    </label>
-
-                    <div class="flex items-center gap-2 sm:ml-auto">
-                        <label class="text-xs text-slate-500 font-semibold uppercase tracking-wider" for="sort-select">Sort:</label>
-                        <select name="sort" id="sort-select"
-                                onchange="this.form.requestSubmit()"
-                                class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
-                            {% for value, label in sort_options %}
-                                <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    {% if has_filters %}
-                    <a href="{% url 'job_list' %}{% if query %}?q={{ query|urlencode }}{% endif %}{% if location %}{% if query %}&{% else %}?{% endif %}loc={{ location|urlencode }}{% endif %}"
-                       class="text-xs text-red-400 hover:text-red-300 font-medium transition-colors whitespace-nowrap">
-                        &times; Clear filters
-                    </a>
-                    {% endif %}
-                </div>
+                {% include 'core/partials/search_filters.html' %}
             </form>
-
-            {% if available_categories %}
-            <div class="flex flex-wrap items-center gap-2 pt-4 mt-4 border-t border-white/5">
-                <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Category:</span>
-                <a href="{% url 'job_list' %}{% if qs_no_category %}?{{ qs_no_category }}{% endif %}"
-                   class="px-3 py-1 rounded-full text-xs font-medium border transition-all
-                          {% if not category %}bg-indigo-600 text-white border-indigo-500{% else %}bg-white/5 text-slate-300 border-white/10 hover:bg-white/10{% endif %}">
-                    All
-                </a>
-                {% for cat in available_categories %}
-                <a href="{% url 'job_list' %}?{{ qs_no_category }}{% if qs_no_category %}&{% endif %}category={{ cat|urlencode }}"
-                   class="px-3 py-1 rounded-full text-xs font-medium border transition-all
-                          {% if category == cat %}bg-indigo-600 text-white border-indigo-500{% else %}bg-white/5 text-slate-300 border-white/10 hover:bg-white/10{% endif %}">
-                    {{ cat }}
-                </a>
-                {% endfor %}
-            </div>
-            {% endif %}
         </div>
     </div>
 
@@ -176,4 +103,91 @@
     </div>
 
 </div>
+
+<script>
+(function () {
+    const form = document.getElementById('search-form');
+    const qInput = document.getElementById('search-q');
+
+    // Keep pushed URLs clean: drop empty params (?q=React, not ?q=React&loc=&...)
+    document.body.addEventListener('htmx:configRequest', (e) => {
+        Object.keys(e.detail.parameters).forEach((k) => {
+            if (e.detail.parameters[k] === '') delete e.detail.parameters[k];
+        });
+    });
+    const locInput = document.querySelector('input[name="loc"]');
+    const suggestBox = () => document.getElementById('search-suggestions');
+
+    // --- Live search: results refresh ~as you type (backend completes
+    //     unfinished words, so "javasc" already finds JavaScript jobs) ---
+    let liveTimer, isLiveSubmit = false;
+    function liveSearch(delay) {
+        clearTimeout(liveTimer);
+        liveTimer = setTimeout(() => {
+            isLiveSubmit = true;
+            form.requestSubmit();
+        }, delay);
+    }
+    qInput.addEventListener('input', () => liveSearch(650));
+    if (locInput) locInput.addEventListener('input', () => liveSearch(650));
+    // A real submit (Enter / button / select change) cancels the pending live
+    // refresh and closes the dropdown; a live refresh keeps it open.
+    form.addEventListener('submit', () => {
+        clearTimeout(liveTimer);
+        if (!isLiveSubmit) hideSuggestions();
+        isLiveSubmit = false;
+    });
+
+    // --- Suggestions dropdown ---
+    function hideSuggestions() {
+        const box = suggestBox();
+        if (box) box.innerHTML = '';
+    }
+    function suggestItems() {
+        return Array.from(document.querySelectorAll('[data-suggest-item]'));
+    }
+    // Click a suggestion -> fill the box and search immediately
+    document.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-suggest-item]');
+        if (item) {
+            qInput.value = item.dataset.term;
+            hideSuggestions();
+            clearTimeout(liveTimer);
+            form.requestSubmit();
+        } else if (!e.target.closest('#search-suggestions') && e.target !== qInput) {
+            hideSuggestions();
+        }
+    });
+    // Keyboard: arrows navigate, Enter picks, Escape closes
+    let active = -1;
+    qInput.addEventListener('keydown', (e) => {
+        const items = suggestItems();
+        if (e.key === 'Escape') { hideSuggestions(); active = -1; return; }
+        if (!items.length) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            active = e.key === 'ArrowDown'
+                ? (active + 1) % items.length
+                : (active - 1 + items.length) % items.length;
+            items.forEach((el, i) => el.classList.toggle('bg-indigo-500/15', i === active));
+        } else if (e.key === 'Enter' && active >= 0) {
+            e.preventDefault();
+            items[active].click();
+            active = -1;
+        }
+    });
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+        if (e.target === suggestBox()) active = -1;
+    });
+
+    // --- "/" focuses the search box from anywhere on the page ---
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+            e.preventDefault();
+            qInput.focus();
+            qInput.select();
+        }
+    });
+})();
+</script>
 {% endblock %}

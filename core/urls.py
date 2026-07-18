@@ -17,6 +17,7 @@ urlpatterns = [
 
     # --- Job Board Features ---
     path('jobs/', views.job_list, name='job_list'),
+    path('jobs/suggest/', views.job_suggest, name='job_suggest'),
     path('job/<int:pk>/', views.job_detail, name='job_detail'),
     path('toggle-save/<int:job_id>/', views.toggle_save_job, name='toggle_save_job'),
     path('subscribe/', views.subscribe_alert, name='subscribe_alert'),

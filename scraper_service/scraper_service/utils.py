@@ -10,6 +10,7 @@ from .constants import (
     HYBRID_PATTERNS, ONSITE_PATTERNS, REMOTE_PATTERNS,
     EMPLOYMENT_PATTERNS, ROLE_CATEGORY_TITLE_RULES, ROLE_CATEGORY_SKILL_HINTS,
     CURRENCY_TO_USD, SUMMARY_BOILERPLATE_PATTERNS,
+    AMBIGUOUS_PROSE_SKILLS, TECH_CONTEXT_PATTERN,
 )
 
 # --- 1. PRE-COMPILE PATTERNS FOR PERFORMANCE ---
@@ -37,6 +38,8 @@ for skill in TECH_KEYWORDS:
     SKILL_PATTERNS.append((skill, re.compile(pattern)))
 
 NEGATION_REGEXES = [re.compile(p) for p in NEGATION_PATTERNS]
+
+TECH_CONTEXT_RE = re.compile(TECH_CONTEXT_PATTERN)
 
 # Seniority: values in SENIORITY_MAP are regex fragments (may contain escapes
 # like "sr\."), so boundaries are applied based on their effective edges.
@@ -130,11 +133,19 @@ def extract_skills(text: str) -> List[str]:
             context = text_lower[ctx_start:ctx_end]
 
             # Check negation
-            if not any(neg.search(context) for neg in NEGATION_REGEXES):
-                found_skills.add(skill_name)
-                # Once found valid, break loop for this specific skill
-                # (no need to find the same skill twice)
-                break
+            if any(neg.search(context) for neg in NEGATION_REGEXES):
+                continue
+
+            # Skills that are everyday words ("Go", "R", "Chef") only count
+            # in a technical context — "das Go geben" / "ready to go" don't.
+            if skill_name.lower() in AMBIGUOUS_PROSE_SKILLS and \
+                    not TECH_CONTEXT_RE.search(context):
+                continue
+
+            found_skills.add(skill_name)
+            # Once found valid, break loop for this specific skill
+            # (no need to find the same skill twice)
+            break
 
     return list(found_skills)
 

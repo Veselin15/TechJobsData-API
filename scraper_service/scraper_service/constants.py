@@ -320,3 +320,20 @@ SUMMARY_BOILERPLATE_PATTERNS = [
     r'^(?:overview|description|summary|introduction)[:\s]*$',
     r'^headquarters?[:\s]', r'^url[:\s]', r'^location[:\s]',
 ]
+
+# 15. Skill names that are also everyday English words. Extracted from prose
+# only when the surrounding text looks technical — otherwise German listings
+# saying 'das "Go" geben' or English ones saying "ready to go" get tagged
+# with the Go language (this actually happened: 154 of 1,066 jobs).
+AMBIGUOUS_PROSE_SKILLS = {
+    "go", "r", "c", "dart", "shell", "ray", "spark", "chef", "puppet",
+    "express", "unity", "rust", "flask",
+}
+
+# Words that mark a context window as "technical" for the check above.
+TECH_CONTEXT_PATTERN = (
+    r'develop|engineer|program|language|backend|frontend|full.?stack|'
+    r'microservice|framework|experience|proficien|knowledge|stack|coding|'
+    r'\bcode\b|\bapi\b|\bsdk\b|written in|database|server|script|'
+    r'kubernetes|docker|cloud|distributed|concurren'
+)

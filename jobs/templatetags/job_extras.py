@@ -2,6 +2,10 @@
 from datetime import date, timedelta
 
 from django import template
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+
+from jobs.search import HL_START, HL_STOP
 
 register = template.Library()
 
@@ -65,6 +69,33 @@ def salary_compact(job):
     if salary_min:
         return f"{symbol}{_compact_amount(salary_min)}+"
     return f"Up to {symbol}{_compact_amount(salary_max)}"
+
+
+@register.filter
+def get_item(mapping, key):
+    """Dict lookup with a variable key: {{ facet_counts.source|get_item:s }}."""
+    if not mapping:
+        return None
+    return mapping.get(key)
+
+
+_MARK_OPEN = '<mark class="bg-indigo-500/25 text-indigo-100 rounded px-0.5">'
+_MARK_CLOSE = '</mark>'
+
+
+@register.filter
+def highlight(text):
+    """
+    Renders ts_headline output safely: the text is HTML-escaped FIRST
+    (titles/descriptions are scraped, i.e. untrusted), then the private-use
+    sentinel characters inserted by the search engine become <mark> tags.
+    """
+    if not text:
+        return ''
+    escaped = escape(text)
+    return mark_safe(
+        escaped.replace(HL_START, _MARK_OPEN).replace(HL_STOP, _MARK_CLOSE)
+    )
 
 
 @register.filter

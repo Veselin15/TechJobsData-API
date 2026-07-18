@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
+
 
 class Job(models.Model):
     title = models.CharField(max_length=500)
@@ -28,10 +30,16 @@ class Job(models.Model):
     salary_min_usd = models.IntegerField(null=True, blank=True)
     salary_max_usd = models.IntegerField(null=True, blank=True)
 
+    # Weighted full-text document (title=A, company/skills=B, description=C).
+    # Maintained by a Postgres trigger (migration 0007), NOT by Django —
+    # never assign to it in application code.
+    search_vector = SearchVectorField(null=True, editable=False)
+
     class Meta:
         indexes = [
             models.Index(fields=['-posted_at', 'title']),
             models.Index(fields=['-quality_score', '-posted_at']),
+            GinIndex(fields=['search_vector'], name='jobs_search_vector_gin'),
         ]
 
     def __str__(self):

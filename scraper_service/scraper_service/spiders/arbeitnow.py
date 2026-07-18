@@ -2,6 +2,8 @@ import json
 import scrapy
 from datetime import datetime, timezone
 from ..items import JobItem
+from ..constants import SKILL_ALIASES
+from ..utils import CANONICAL_SKILLS
 
 
 class ArbeitnowSpider(scrapy.Spider):
@@ -67,7 +69,15 @@ class ArbeitnowSpider(scrapy.Spider):
                 posted_at=posted_at,
                 description=job.get('description') or "",
                 source="Arbeitnow",
-                skills=[t for t in (job.get('tags') or []) if isinstance(t, str)],
+                # Arbeitnow 'tags' are job-board categories ("Chief
+                # Executives", "Directors"), not skills — keep only the ones
+                # that resolve to a known tech skill.
+                skills=[
+                    t for t in (job.get('tags') or [])
+                    if isinstance(t, str)
+                    and (t.strip().lower() in CANONICAL_SKILLS
+                         or t.strip().lower() in SKILL_ALIASES)
+                ],
                 salary_min=None,
                 salary_max=None,
                 currency=None,

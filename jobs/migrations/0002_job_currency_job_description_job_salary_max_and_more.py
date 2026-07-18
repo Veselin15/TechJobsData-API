@@ -30,16 +30,10 @@ class Migration(migrations.Migration):
             name='salary_min',
             field=models.IntegerField(blank=True, null=True),
         ),
-        migrations.AddField(
-            model_name='job',
-            name='seniority',
-            field=models.CharField(default='Not Specified', max_length=50),
-        ),
-        migrations.AddField(
-            model_name='job',
-            name='skills',
-            field=models.JSONField(blank=True, default=list),
-        ),
+        # NOTE: 'skills' and 'seniority' are deliberately NOT added here —
+        # migrations 0003 and 0004 add them. This file was regenerated after
+        # they existed, which duplicated the AddField ops and broke fresh
+        # installs ("column skills already exists").
         migrations.AlterField(
             model_name='job',
             name='company',

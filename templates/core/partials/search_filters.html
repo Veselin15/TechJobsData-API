@@ -1,0 +1,100 @@
+{% load job_extras %}
+{% comment %}
+Filter selects + category chips. Rendered inside the search form on full
+page loads, and re-sent with hx-swap-oob on every HTMX search so the
+facet counts ("Senior (34)") always reflect the current result set.
+{% endcomment %}
+<div id="search-filters" {% if oob %}hx-swap-oob="true"{% endif %}>
+    <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-white/5">
+        <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Filters:</span>
+
+        {% if available_sources %}
+        <select name="source"
+                onchange="this.form.requestSubmit()"
+                class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+            <option value="">All Sources</option>
+            {% for s in available_sources %}
+                {% with n=facet_counts.source|get_item:s %}
+                <option value="{{ s }}" {% if s == source %}selected{% endif %}>{{ s }}{% if n %} ({{ n }}){% endif %}</option>
+                {% endwith %}
+            {% endfor %}
+        </select>
+        {% endif %}
+
+        {% if available_seniorities %}
+        <select name="seniority"
+                onchange="this.form.requestSubmit()"
+                class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+            <option value="">All Levels</option>
+            {% for s in available_seniorities %}
+                {% with n=facet_counts.seniority|get_item:s %}
+                <option value="{{ s }}" {% if s == seniority %}selected{% endif %}>{{ s }}{% if n %} ({{ n }}){% endif %}</option>
+                {% endwith %}
+            {% endfor %}
+        </select>
+        {% endif %}
+
+        <select name="posted_within"
+                onchange="this.form.requestSubmit()"
+                class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+            <option value="">Any Time</option>
+            {% for days, label in date_options %}
+                <option value="{{ days }}" {% if posted_within == days|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="min_salary"
+                onchange="this.form.requestSubmit()"
+                class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+            <option value="">Any Salary</option>
+            {% for amount, label in salary_options %}
+                <option value="{{ amount }}" {% if min_salary == amount|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none rounded-lg border border-white/10 bg-white/5 py-1.5 px-3 hover:bg-white/10 transition-all {% if remote_only %}border-indigo-500/50 text-indigo-300 bg-indigo-500/10{% endif %}">
+            <input type="checkbox" name="remote" value="1" {% if remote_only %}checked{% endif %}
+                   onchange="this.form.requestSubmit()"
+                   class="rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 w-4 h-4">
+            Remote only
+        </label>
+
+        <div class="flex items-center gap-2 sm:ml-auto">
+            <label class="text-xs text-slate-500 font-semibold uppercase tracking-wider" for="sort-select">Sort:</label>
+            <select name="sort" id="sort-select"
+                    onchange="this.form.requestSubmit()"
+                    class="rounded-lg border-white/10 bg-white/5 text-sm text-slate-300 py-1.5 pl-3 pr-8 focus:border-indigo-500 focus:ring-indigo-500 hover:bg-white/10 transition-all cursor-pointer">
+                {% for value, label in sort_options %}
+                    <option value="{{ value }}" {% if sort_param == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if has_filters %}
+        <a href="{% url 'job_list' %}{% if query %}?q={{ query|urlencode }}{% endif %}{% if location %}{% if query %}&{% else %}?{% endif %}loc={{ location|urlencode }}{% endif %}"
+           class="text-xs text-red-400 hover:text-red-300 font-medium transition-colors whitespace-nowrap">
+            &times; Clear filters
+        </a>
+        {% endif %}
+    </div>
+
+    {% if available_categories %}
+    <div class="flex flex-wrap items-center gap-2 pt-4 mt-4 border-t border-white/5">
+        <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Category:</span>
+        <a href="{% url 'job_list' %}{% if qs_no_category %}?{{ qs_no_category }}{% endif %}"
+           class="px-3 py-1 rounded-full text-xs font-medium border transition-all
+                  {% if not category %}bg-indigo-600 text-white border-indigo-500{% else %}bg-white/5 text-slate-300 border-white/10 hover:bg-white/10{% endif %}">
+            All
+        </a>
+        {% for cat in available_categories %}
+        {% with n=facet_counts.category|get_item:cat %}
+        <a href="{% url 'job_list' %}?{{ qs_no_category }}{% if qs_no_category %}&{% endif %}category={{ cat|urlencode }}"
+           class="px-3 py-1 rounded-full text-xs font-medium border transition-all
+                  {% if category == cat %}bg-indigo-600 text-white border-indigo-500{% elif not n %}bg-white/5 text-slate-500 border-white/5 hover:bg-white/10{% else %}bg-white/5 text-slate-300 border-white/10 hover:bg-white/10{% endif %}">
+            {{ cat }}{% if n %} <span class="opacity-60">{{ n }}</span>{% endif %}
+        </a>
+        {% endwith %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

@@ -1,6 +1,9 @@
 import logging
+import os
 import re
 import subprocess
+from pathlib import Path
+
 from celery import shared_task
 from datetime import timedelta
 from django.utils import timezone
@@ -8,7 +11,11 @@ from .models import Job
 
 logger = logging.getLogger(__name__)
 
-SCRAPER_CWD = "/app/scraper_service"
+# /app/scraper_service in Docker; resolved from the repo layout everywhere else
+SCRAPER_CWD = os.environ.get(
+    "SCRAPER_CWD",
+    str(Path(__file__).resolve().parent.parent / "scraper_service"),
+)
 
 
 def _log_scrapy_output(spider_label, output):
