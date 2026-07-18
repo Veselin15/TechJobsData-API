@@ -1,0 +1,79 @@
+{% extends 'core/guides/guide_base.html' %}
+
+{% block guide_body %}
+<p>
+    Ask five developers what you should learn next and you'll get five autobiographies. The person who loves
+    Rust says Rust; the person who got a raise after learning Kubernetes says Kubernetes. Demand data is the
+    antidote to advice-as-memoir: instead of asking what worked for one person, you ask what thousands of
+    employers are paying for <em>right now</em>. But raw demand numbers are easy to misread, and misreading
+    them costs months. This guide is the method we'd use ourselves.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Rule one: popularity is not opportunity</h2>
+<p>
+    Open any skill-demand chart — including <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300">ours</a> —
+    and the top of the list is boringly stable: Python, JavaScript, SQL, AWS, React, Docker. Beginners read
+    this as "learn the top of the chart". That's half right and half trap. Those skills top the chart because
+    they're <em>foundational</em> — they appear in listings of every kind the way "reading" appears in office
+    job requirements. They're mandatory, but they're not differentiating: everyone else applying also has
+    Python on their CV.
+</p>
+<p>
+    The opportunity lives in the ratio between demand and supply, and supply isn't on the chart. You have to
+    infer it. A skill with moderate demand but a shallow talent pool (think: Rust systems work, streaming
+    infrastructure like Kafka at scale, gnarly Kubernetes debugging) routinely beats a skill with huge demand
+    and a bottomless pool. The chart tells you what's asked for; your competition determines what it pays.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Rule two: read skills in clusters, not alone</h2>
+<p>
+    Employers don't hire skills; they hire stacks. In our listings, skills arrive in recognizable clusters —
+    the same tags co-occur constantly. React arrives with TypeScript and Next.js; Terraform arrives with AWS
+    and Kubernetes; PyTorch arrives with Pandas and a stats vocabulary. When you pick a "next skill", you're
+    really picking the cluster it belongs to, because the second and third skills of the cluster are what
+    make the first employable.
+</p>
+<p>
+    A practical exercise: search the <a href="{% url 'job_list' %}" class="text-indigo-400 hover:text-indigo-300">job board</a>
+    for the skill you're considering, open ten listings, and write down every other technology those listings
+    mention. That co-occurrence list <em>is</em> your syllabus, ordered by frequency. It's more current than
+    any course platform's curriculum, because it's this month's employers writing it.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Rule three: weight demand by salary, not just volume</h2>
+<p>
+    Two skills can each appear in three hundred listings while living in different economies. The way to see
+    it is to cross demand with the advertised salaries of the listings that require the skill. High-volume,
+    lower-salary skills (WordPress is the classic) are real work and honest money, but they're commodity
+    markets. Lower-volume, high-salary skills are specialist markets. Neither is wrong — commodity markets
+    are easier to enter, specialist markets pay better once you're in. What matters is choosing deliberately
+    instead of drifting into whichever market your first tutorial happened to serve.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Rule four: distinguish waves from weather</h2>
+<p>
+    Demand data has fashion cycles. A framework spikes when two large employers adopt it, then decays; that's
+    weather. A category that grows across many employers for years — cloud infrastructure did this, ML/AI
+    tooling is doing it now — is a wave. The test is breadth: weather is three companies posting many
+    listings; a wave is many companies posting a few each. Before betting a learning quarter on a trending
+    skill, check <em>how many distinct companies</em> are asking, not just how many listings exist. Ten
+    listings from ten companies beat thirty listings from one hiring spree.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">A quarterly planning ritual (one hour, four times a year)</h2>
+<ol class="list-decimal pl-6 space-y-2">
+    <li><strong class="text-white">Audit:</strong> list your current skills and mark each one foundation / differentiator / decaying. Be ruthless about the last category — demand data will tell you if the market already voted.</li>
+    <li><strong class="text-white">Target:</strong> pick <em>one</em> cluster to deepen, chosen by demand × salary × your existing adjacency. Adjacency matters: a Django developer learning DRF-adjacent infrastructure compounds; one learning iOS starts over.</li>
+    <li><strong class="text-white">Validate with listings, not courses:</strong> find five current listings you couldn't pass today that you could after the quarter. Save them. They're your exam.</li>
+    <li><strong class="text-white">Build proof:</strong> employers hire evidence, not enthusiasm. One deployed project that exercises the cluster beats four certificates. The listings you saved tell you exactly what the project should demonstrate.</li>
+    <li><strong class="text-white">Recheck the data</strong> at quarter's end before choosing again. Markets move; syllabi shouldn't be annual.</li>
+</ol>
+
+<h2 class="text-2xl font-bold text-white pt-4">The uncomfortable footnote</h2>
+<p>
+    Demand data optimizes employability, not enjoyment, and a skill you resent learning is a skill you'll
+    plateau in early. The best use of the numbers is as a tiebreaker among things you'd genuinely build with —
+    a filter on curiosity, not a replacement for it. The market pays for depth, and depth only happens where
+    attention doesn't feel like a tax.
+</p>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends 'core/guides/guide_base.html' %}
+
+{% block guide_body %}
+<p>
+    Job-board data looks structured from a distance — title, company, salary, apply button — and dissolves
+    into chaos the moment you parse it. This is the story of the pipeline behind TechJobsData: what breaks,
+    what we do about it, and what we learned about the job market from cleaning its exhaust. If you're a
+    developer, it's an engineering read; if you're a job seeker, it's a look at why the tidy filters you use
+    on our <a href="{% url 'job_list' %}" class="text-indigo-400 hover:text-indigo-300">job board</a> exist at all.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">The same job, wearing five URLs</h2>
+<p>
+    The first enemy is duplication. One posting gets syndicated across boards, shared with tracking
+    parameters, and reposted to bump its date. Naively stored, a popular listing becomes five rows that are
+    almost — but not exactly — identical. Our first line of defense is URL canonicalization: strip the
+    <code class="text-cyan-300">utm_*</code> and referral parameters, normalize the host, drop fragments, and
+    use the cleaned URL as the unique key. It's unglamorous string surgery, and it eliminates a whole class
+    of "why do I see this job twice" bugs before anything smarter has to run.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Salary parsing: a tour of everything that can go wrong</h2>
+<p>
+    Salary text is our favorite adversary. Within one day's crawl we'll meet "$120k–$150k", "€65.000 p.a."
+    (that dot is a thousands separator), "£400/day" (a contractor rate that must be annualized), "5,000 per
+    month" (multiply by twelve, but only after proving it's a salary), and "join 250,000 users" (not a salary
+    at all, however much the regex wants it to be). The parser works in stages: detect the currency, detect
+    the period and annualize (hourly ×2080, daily ×260, monthly ×12), reject numbers whose context says
+    <em>users</em> or <em>customers</em> rather than <em>compensation</em>, and sanity-check the result into
+    a plausible annual band. Reversed ranges ("150k–120k" — yes, really) get swapped rather than stored.
+</p>
+<p>
+    Then comes comparison. A €70k listing and an $80k listing can't be filtered against each other in their
+    native currencies, so we also store a USD-normalized pair converted at fixed reference rates. Fixed is a
+    deliberate choice: we're building comparable magnitudes for search and statistics, not a currency
+    exchange, and stable rates keep week-over-week trends honest.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Skills: the alias swamp</h2>
+<p>
+    Source boards tag the same technology a dozen ways: <code class="text-cyan-300">golang</code> and Go,
+    <code class="text-cyan-300">k8s</code> and Kubernetes, <code class="text-cyan-300">nodejs</code>,
+    <code class="text-cyan-300">node js</code> and Node.js. Left alone, every alias becomes its own bar on a
+    demand chart, splitting one skill's demand into fragments and quietly lying to everyone. So every tag
+    passes through an alias table into a canonical name, junk tags ("dev", "digital nomad") get dropped, and
+    our own extractor scans the full text for technologies the source never tagged — while a negation guard
+    keeps "no PHP required" from crediting PHP. Some words needed extra care: a listing can contain "go" or
+    "r" without being about Go or R, so ambiguous everyday-word skills require confirming context before they
+    count. Getting this wrong doesn't crash anything, which is exactly why it's dangerous — bad tags just
+    silently corrupt every statistic downstream.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Inferring what listings won't say</h2>
+<p>
+    The most useful fields on our job cards are ones almost no source provides directly. Work model —
+    Remote, Hybrid, On-site — is inferred from title, location and description together, with a rule that
+    hybrid evidence beats remote claims, because "remote, 3 days in office" is hybrid no matter what the
+    title says. Seniority is classified from the title first and the description as a fallback, ignoring
+    trap phrases like "reporting to the Senior Manager". Role categories (Backend, Data &amp; ML, DevOps…)
+    come from ordered title rules with the skill list as a tiebreaker for generic titles like "Software
+    Engineer". Every listing also gets a completeness score — description depth, salary presence, skill
+    count, freshness — which powers "best match" ranking and lets us keep genuinely thin listings out of
+    search engines' way entirely.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Freshness is a feature you have to build</h2>
+<p>
+    A job board's silent failure mode is necro-listings: roles filled months ago, still soliciting hope.
+    Aggregators are especially vulnerable because they inherit staleness from every source at once. Our
+    janitor task deletes listings past thirty days, crawls run twice daily, and the deduplication above means
+    a repost refreshes the existing row instead of spawning a zombie twin. Thirty days is a tradeoff — a few
+    long-running searches genuinely last longer — but the alternative, a board where a third of the "open"
+    roles are ghosts, wastes the one thing applicants can't get back.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">What the cleaning taught us</h2>
+<p>
+    After enough of this, the pipeline becomes an instrument for reading the market: pay transparency is
+    still the exception; titles inflate but descriptions confess; and messiness itself is a signal — the
+    listings that parse cleanly, with real ranges and specific stacks, disproportionately come from companies
+    that are pleasant to interview with. Structure, it turns out, is a company trait. The aggregate results
+    of all this cleaning are public on our <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300">Market Insights</a>
+    page, and the same normalized data is available programmatically through the
+    <a href="{% url 'developer_guide' %}" class="text-indigo-400 hover:text-indigo-300">API</a> if you'd rather run your own analysis.
+</p>
+{% endblock %}

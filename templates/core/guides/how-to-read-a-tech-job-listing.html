@@ -1,0 +1,96 @@
+{% extends 'core/guides/guide_base.html' %}
+
+{% block guide_body %}
+<p>
+    Job listings are a genre of fiction with strict conventions. Once you learn the conventions, you can read
+    a posting in ninety seconds and know whether it deserves twenty minutes of your life. We process thousands
+    of listings a day through our normalization pipeline, which means we've seen every trick, template and
+    tell in the format. This guide is the decoder ring.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Start with what's missing, not what's there</h2>
+<p>
+    The single most informative thing about a listing is usually an absence. In our dataset, only about one in
+    five tech listings discloses any salary figure. That's not because the other four companies forgot — pay
+    transparency is a choice, and choosing against it tells you the company either pays below the market band
+    for the title, wants maximum room to anchor low in negotiation, or has internal pay inconsistencies it
+    would rather not advertise. None of those are dealbreakers, but all of them are information.
+</p>
+<p>
+    The same logic applies to the tech stack. A backend role that names its stack ("Python, Django, Postgres,
+    deployed on AWS with Terraform") is written by someone close to the actual work. A listing that says
+    "modern cloud technologies" was written by someone at least two layers away from the codebase, and the
+    interview process will usually have the same flavor.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Seniority labels are marketing, not measurement</h2>
+<p>
+    Titles inflate for the same reason currencies do: issuing more of them is free. "Senior" in a
+    fifty-person startup can mean three years of experience and ownership of half the product; "Senior" at an
+    enterprise can mean a decade and a promotion committee. When our classifier assigns seniority levels, it
+    reads the title <em>and</em> the description, because the two frequently disagree — a "Senior Engineer"
+    posting that describes shipping tickets under close supervision is a mid-level role wearing a costume.
+</p>
+<p>
+    The reliable signal isn't the label; it's the verbs. <em>Own, design, decide, mentor, define</em> describe
+    senior work. <em>Implement, support, assist, contribute</em> describe earlier-career work. Read the
+    responsibilities paragraph and strike out every adjective — what's left is the actual job.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">The requirements list is a wish list with an exchange rate</h2>
+<p>
+    The old advice — treat requirements as negotiable — is true but incomplete. The useful skill is knowing
+    the exchange rate. In practice, a listing's requirements section divides into three tiers, almost never
+    labeled:
+</p>
+<ul class="list-disc pl-6 space-y-2">
+    <li><strong class="text-white">Load-bearing requirements</strong> — the two or three technologies that appear in the title, the first paragraph, <em>and</em> the requirements. If the posting says "Rust engineer" three times, no amount of adjacent experience substitutes for Rust.</li>
+    <li><strong class="text-white">Ecosystem filler</strong> — the surrounding tools (Git, CI/CD, "agile environments") that every working engineer already has. These exist to make the list look rigorous. Ignore them.</li>
+    <li><strong class="text-white">The wish sub-list</strong> — "nice to have", "bonus points", and anything with a version number more specific than the team actually runs. Meeting 30% of these is normal for the person they eventually hire.</li>
+</ul>
+<p>
+    A useful rule from watching listings age in our index: postings that demand everything tend to stay open
+    longest. A listing on its second or third month (check the posted date — we show it on every listing) is
+    a listing whose requirements have quietly become negotiable.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Salary ranges: read the width, not just the numbers</h2>
+<p>
+    When a range is present, its <em>width</em> is a message. A tight range ($130k–$145k) means the company
+    has leveled the role precisely and negotiation will move small amounts. A cavernous range ($90k–$180k)
+    means one of two things: the listing is really two or three roles wearing one title ("we'll level you
+    after interviews"), or the range was published to satisfy a transparency law with minimum information
+    content. Either way, expect the real conversation to start near the bottom third — which is exactly why
+    you should have market data of your own before that conversation. (We wrote a
+    <a href="{% url 'guide_detail' 'salary-negotiation-with-market-data' %}" class="text-indigo-400 hover:text-indigo-300">separate guide</a> on that.)
+</p>
+<p>
+    Also check the period and currency before you get excited. Our salary parser exists because "$8,000" can
+    mean a month in Dubai, "€65.000" uses a dot as a thousands separator, and "£400" is a contractor day
+    rate. Human eyes make the same mistakes the naive parsers do.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Quiet red flags</h2>
+<ul class="list-disc pl-6 space-y-2">
+    <li><strong class="text-white">"Fast-paced environment" + "wear many hats" + no engineering headcount mentioned</strong> — understaffed, and planning to stay that way.</li>
+    <li><strong class="text-white">"Competitive salary" with no number</strong> — competitive with whom is left as an exercise for the reader.</li>
+    <li><strong class="text-white">A reposted listing with a fresh date</strong> — sometimes genuine growth; often churn. If you saw the same role twelve weeks ago, ask in the interview what happened.</li>
+    <li><strong class="text-white">Five interview stages for a mid-level role</strong> — process weight correlates with decision-making weight everywhere else in the company.</li>
+    <li><strong class="text-white">"We're like a family"</strong> — families don't have performance improvement plans.</li>
+</ul>
+
+<h2 class="text-2xl font-bold text-white pt-4">A ninety-second reading protocol</h2>
+<ol class="list-decimal pl-6 space-y-2">
+    <li>Posted date first — is this listing fresh, or fossilized?</li>
+    <li>Salary present? Note the width of the range.</li>
+    <li>Find the load-bearing requirements (title + first paragraph + requirements overlap).</li>
+    <li>Read the responsibility verbs; ignore the adjectives.</li>
+    <li>Check the work model — and whether "remote" comes with an asterisk like "3 days in office". Our
+        <a href="{% url 'guide_detail' 'remote-hybrid-onsite-what-listings-say' %}" class="text-indigo-400 hover:text-indigo-300">remote-work guide</a> covers how often it does.</li>
+</ol>
+<p>
+    If a listing survives all five checks, it has earned the twenty minutes for a tailored application. Most
+    won't — which is the point. Your time is the scarcest resource in a job search; spend it like the salary
+    it eventually becomes.
+</p>
+{% endblock %}

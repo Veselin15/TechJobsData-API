@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ guide.title }} | TechJobsData Guides{% endblock %}
+{% block meta_description %}{{ guide.description }}{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ guide.title }}">
+<meta property="og:description" content="{{ guide.description }}">
+<meta property="og:image" content="https://techjobsdata.com/static/img/logo.png">
+<meta property="og:type" content="article">
+{% endblock %}
+
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ guide.title|escapejs }}",
+  "description": "{{ guide.description|escapejs }}",
+  "datePublished": "{{ guide.published|date:'Y-m-d' }}",
+  "dateModified": "{{ guide.published|date:'Y-m-d' }}",
+  "author": {
+    "@type": "Organization",
+    "name": "TechJobsData Team",
+    "url": "https://techjobsdata.com/about/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "TechJobsData",
+    "logo": {"@type": "ImageObject", "url": "https://techjobsdata.com/static/img/logo.png"}
+  },
+  "mainEntityOfPage": "{{ request.build_absolute_uri }}"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://techjobsdata.com/"},
+    {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://techjobsdata.com{% url 'guide_list' %}"},
+    {"@type": "ListItem", "position": 3, "name": "{{ guide.title|escapejs }}"}
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 sm:py-16 px-4">
+    <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex flex-wrap items-center gap-1.5 text-sm text-slate-400">
+            <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+            <li class="text-slate-600">/</li>
+            <li><a href="{% url 'guide_list' %}" class="hover:text-white transition-colors">Guides</a></li>
+            <li class="text-slate-600">/</li>
+            <li class="text-slate-500 truncate max-w-[16rem] sm:max-w-md" aria-current="page">{{ guide.title }}</li>
+        </ol>
+    </nav>
+
+    <header class="mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">{{ guide.title }}</h1>
+        <p class="text-lg text-slate-400 leading-relaxed mb-4">{{ guide.description }}</p>
+        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>By the TechJobsData Team</span>
+            <span class="text-slate-700">•</span>
+            <time datetime="{{ guide.published|date:'Y-m-d' }}">{{ guide.published|date:"F j, Y" }}</time>
+            <span class="text-slate-700">•</span>
+            <span>{{ guide.minutes }} min read</span>
+        </div>
+    </header>
+
+    <article class="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed space-y-6">
+        {% block guide_body %}{% endblock %}
+    </article>
+
+    <div class="mt-14 p-6 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
+        <p class="text-sm text-slate-300 leading-relaxed">
+            The statistics referenced in this guide come from our own continuously updated dataset.
+            See the live numbers on the <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300 font-semibold">Market Insights</a> page,
+            or put them to work on the <a href="{% url 'job_list' %}" class="text-indigo-400 hover:text-indigo-300 font-semibold">job board</a>.
+        </p>
+    </div>
+
+    {% if other_guides %}
+    <div class="mt-12">
+        <h2 class="text-lg font-bold text-white mb-4">More guides</h2>
+        <div class="space-y-3">
+            {% for g in other_guides %}
+            <a href="{% url 'guide_detail' g.slug %}"
+               class="block p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:border-indigo-500/30 hover:bg-white/[0.06] transition-all">
+                <p class="text-sm font-bold text-white">{{ g.title }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ g.description|truncatechars:110 }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

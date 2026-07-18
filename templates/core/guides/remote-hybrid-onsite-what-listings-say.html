@@ -1,0 +1,82 @@
+{% extends 'core/guides/guide_base.html' %}
+
+{% block guide_body %}
+<p>
+    Every few months someone declares remote work dead, and every few months the listings disagree. Because we
+    aggregate job boards with very different cultures — remote-first boards, European boards heavy on hybrid
+    roles, general boards with everything — our dataset gives an unusually wide-angle view of where tech work
+    actually happens. This guide is about what the listings say, and how to use it when the work model is a
+    hard constraint for you rather than a preference.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">The three-way split, honestly measured</h2>
+<p>
+    Our pipeline classifies every listing as Remote, Hybrid or On-site by reading the title, the location
+    field and the description together — because those three routinely contradict each other. A title says
+    "Remote", the description says "2 days per week in our Berlin office". In our classification, hybrid
+    beats remote whenever both signals appear, because the office days are the constraint that actually
+    shapes your life. The company calling it "remote-friendly" doesn't move your apartment closer to Berlin.
+</p>
+<p>
+    One honest caveat about any aggregated remote number, including ours on the
+    <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300">insights page</a>: the source mix
+    matters. Several boards we index specialize in remote work, so our remote share runs higher than the
+    overall market's. That makes the <em>direction</em> of the number trustworthy — rising or falling over
+    months — while the absolute percentage should be read as "of the boards where tech people actually
+    search", not "of all jobs on Earth". Any site that gives you one clean number without that caveat is
+    selling something.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">"Remote" has fine print. Read it.</h2>
+<p>
+    The word "remote" in a listing spans at least four different contracts:
+</p>
+<ul class="list-disc pl-6 space-y-2">
+    <li><strong class="text-white">Remote, anywhere.</strong> Rare and getting rarer. Usually async-first companies with payroll infrastructure for many countries, or contractor arrangements.</li>
+    <li><strong class="text-white">Remote within a region.</strong> The most common flavor: "Remote — Europe", "Remote (US timezones)". This is a legal and timezone constraint, not a culture signal. Check the location field on our listings — we preserve exactly this qualifier.</li>
+    <li><strong class="text-white">Remote for now.</strong> Watch for "initially remote" or an office address lovingly described in a "remote" listing. Policy changes arrive with quarterly planning.</li>
+    <li><strong class="text-white">Remote, but with a gravity well.</strong> "Remote OK, but we prefer candidates near London." Translation: promotion decisions happen at lunch.</li>
+</ul>
+<p>
+    When we detect the hybrid patterns — explicit "hybrid", or the arithmetic kind, "3 days in the office" —
+    we label the listing accordingly, so filtering by Remote on our
+    <a href="{% url 'job_list' %}?remote=1" class="text-indigo-400 hover:text-indigo-300">job board</a> already
+    excludes the gravity wells that self-identify. The ones that don't self-identify are an interview
+    question: "Walk me through a normal week for someone on this team who lives two timezones away."
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">The salary geometry of remote work</h2>
+<p>
+    Remote listings disclose salaries noticeably more often than on-site ones — remote-first companies compete
+    across borders, and a number in the listing is their cheapest recruiting advantage. But remote salaries
+    also come with location-adjustment policies that a listing rarely spells out. The range you see may be
+    the San Francisco band, the Lisbon band, or a single global band, and the difference between those can be
+    a factor of two. If the listing shows a range and the company hires internationally, asking "is this
+    range location-adjusted, and to where?" is the single highest-value clarifying question you can send
+    before investing in the process.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Hybrid is a schedule, not a compromise</h2>
+<p>
+    Hybrid roles get evaluated lazily — by candidates and employers both — as "remote minus" or "office
+    lite". In listings, the tell for well-run hybrid is specificity: which days, decided by whom, for what
+    activities. "Tuesdays and Wednesdays together for planning and reviews" is a team that thought about it.
+    "Flexible hybrid model" usually means the policy is whatever your manager's manager last announced.
+    On-site days are also commute costs, and commute costs are salary: a five-figure annual difference hides
+    in "3 days per week" for anyone who doesn't live near the office. Do that arithmetic before comparing
+    two offers whose numbers look similar.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Practical filtering strategy</h2>
+<ol class="list-decimal pl-6 space-y-2">
+    <li>If remote is a hard constraint, filter for it structurally (our Remote filter uses the detected work model), then <em>verify in the first call</em>. Classification reads the listing; only a human can read the policy.</li>
+    <li>Treat region-restricted remote as its own market. "Remote — Europe" roles compete for a different candidate pool than "Remote — anywhere", and salaries track the pool.</li>
+    <li>For hybrid roles, convert office days into commute hours and money before comparing offers.</li>
+    <li>Recheck the market quarterly. Work-model mix shifts faster than most job-search advice does — the <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300">live numbers</a> are recalculated continuously precisely because last year's blog posts age badly.</li>
+</ol>
+<p>
+    The meta-lesson from watching thousands of listings: work model is where companies say the most about
+    themselves in the fewest words. A listing that's precise about where and how you'll work tends to belong
+    to a company that's precise about everything else, too.
+</p>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'core/guides/guide_base.html' %}
+
+{% block guide_body %}
+<p>
+    Most salary negotiation advice is theater direction: sit up straight, pause after numbers, mirror their
+    phrasing. Fine. But posture doesn't move offers; evidence does. The negotiator with better market data
+    walks in with a number they can defend and walks out with more of it. This guide is about building that
+    number from advertised listings — the market's own public statements — and using it without turning the
+    conversation adversarial.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Why advertised ranges are your best raw material</h2>
+<p>
+    Self-reported salary surveys skew two ways at once: people who feel underpaid respond more, and people
+    round up. Advertised ranges have the opposite virtue — they're what an employer was willing to put a
+    company name next to, in public, this month. They have their own bias (posted ranges lowball the top for
+    negotiation room, and only about a fifth of listings publish numbers at all), but it's a <em>consistent</em>
+    bias, which makes ranges excellent for comparison even when a single one shouldn't be taken literally.
+</p>
+
+<h2 class="text-2xl font-bold text-white pt-4">Build your number in an hour</h2>
+<ol class="list-decimal pl-6 space-y-2">
+    <li>
+        <strong class="text-white">Collect a comparison set.</strong> On the
+        <a href="{% url 'job_list' %}" class="text-indigo-400 hover:text-indigo-300">job board</a>, search your role and
+        stack, filter to your seniority and work model, and sort by highest salary. You want 10–15 listings
+        with published ranges that a reasonable person would call your job. Discard fantasy outliers in both
+        directions.
+    </li>
+    <li>
+        <strong class="text-white">Normalize before comparing.</strong> Annualize everything, convert to one
+        currency (our listings show a USD equivalent for non-USD ranges), and separate remote-anywhere,
+        remote-regional and on-site listings — those are three different markets, as our
+        <a href="{% url 'guide_detail' 'remote-hybrid-onsite-what-listings-say' %}" class="text-indigo-400 hover:text-indigo-300">remote-work guide</a>
+        explains. Mixing them is how people arrive at numbers that are simultaneously too high for their city
+        and too low for their skills.
+    </li>
+    <li>
+        <strong class="text-white">Find your band, then your point.</strong> The middle of your comparison
+        set's ranges is the market band. Where you sit inside it depends on scarcity: if your particular
+        cluster of skills appears in many listings but few candidates have it deep (the
+        <a href="{% url 'guide_detail' 'use-demand-data-to-plan-your-learning' %}" class="text-indigo-400 hover:text-indigo-300">demand-data guide</a>
+        covers reading that), aim upper third. Write the number down with its evidence. A number with
+        receipts survives pressure; a vibe does not.
+    </li>
+    <li>
+        <strong class="text-white">Check it against the seniority averages</strong> on the
+        <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300">insights page</a> as a sanity
+        pass — averages blend regions and company sizes, so treat them as guardrails, not gospel.
+    </li>
+</ol>
+
+<h2 class="text-2xl font-bold text-white pt-4">Deploying the number</h2>
+<p>
+    Data changes <em>what</em> you say less than it changes <em>how immovably</em> you can say it. A few
+    scripts that work because of the homework behind them:
+</p>
+<ul class="list-disc pl-6 space-y-2">
+    <li>
+        <strong class="text-white">When asked for expectations early:</strong> "Based on current advertised
+        ranges for comparable roles — same stack, same level, same remote setup — I'm targeting the
+        band around X." You've reframed the question from personal hope to public market, which is much
+        harder to argue with politely.
+    </li>
+    <li>
+        <strong class="text-white">When the offer lands below your band:</strong> don't counter with outrage;
+        counter with the comparison set. "The offers being advertised for this profile are running X to Y —
+        help me understand how you're leveling this role." Sometimes the answer is genuine (smaller company,
+        real equity, lighter on-call) and worth hearing. Sometimes it's anchoring, and naming the band ends it.
+    </li>
+    <li>
+        <strong class="text-white">When they can't move the base:</strong> the same data works on the other
+        levers. If the market band says you're conceding €10k of base, that's the size of the signing bonus,
+        extra vacation days, or review-in-six-months clause you're asking to offset it.
+    </li>
+</ul>
+
+<h2 class="text-2xl font-bold text-white pt-4">The mistakes that undo the homework</h2>
+<ul class="list-disc pl-6 space-y-2">
+    <li><strong class="text-white">Quoting one listing.</strong> A single range is an anecdote and invites a rebuttal about why that company is different. Bands built from a dozen listings don't have that weakness.</li>
+    <li><strong class="text-white">Comparing across markets.</strong> A remote-anywhere range from a US startup is not evidence in a Munich on-site negotiation. Your comparison set must share the constraint that binds you.</li>
+    <li><strong class="text-white">Negotiating total comp against base.</strong> Advertised ranges are almost always base salary — equity and bonus live elsewhere. Compare like with like or you'll cheerfully accept a pay cut dressed as a raise.</li>
+    <li><strong class="text-white">Letting the data expire.</strong> Ranges from last year's screenshots are last year's market. Rebuild the comparison set the week you negotiate; it costs an hour and it's the hour the entire conversation rests on.</li>
+</ul>
+
+<h2 class="text-2xl font-bold text-white pt-4">The quiet part</h2>
+<p>
+    The largest salary increases don't come from negotiating harder; they come from changing which market
+    you're in — the skill cluster, the seniority you can evidence, the geography of the companies you apply
+    to. Negotiation captures the value of a position; the position itself is set by everything upstream.
+    Which is to say: the same hour of market data that wins you a few percent in a negotiation is worth far
+    more when you spend it deciding where to aim in the first place.
+</p>
+{% endblock %}

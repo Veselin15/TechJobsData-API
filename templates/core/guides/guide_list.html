@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Career Guides for Tech Job Seekers | TechJobsData{% endblock %}
+{% block meta_description %}Hand-written, data-informed guides on reading job listings, remote work, skill demand, and salary negotiation — from the team behind TechJobsData.{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 sm:py-20 px-4">
+    <div class="mb-12 max-w-2xl">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-4">Career Guides</h1>
+        <p class="text-slate-400 leading-relaxed">
+            Practical, hand-written guides for navigating the tech job market — grounded in the live data we
+            aggregate every day. No recycled listicles: each guide exists because our dataset kept surfacing a
+            question worth answering properly.
+        </p>
+    </div>
+
+    <div class="space-y-5">
+        {% for g in guides %}
+        <a href="{% url 'guide_detail' g.slug %}"
+           class="group block p-6 sm:p-7 bg-white/[0.03] border border-white/10 rounded-2xl hover:border-indigo-500/30 hover:bg-white/[0.06] transition-all">
+            <h2 class="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors mb-2">{{ g.title }}</h2>
+            <p class="text-sm text-slate-400 leading-relaxed mb-3">{{ g.description }}</p>
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+                <time datetime="{{ g.published|date:'Y-m-d' }}">{{ g.published|date:"M j, Y" }}</time>
+                <span class="text-slate-700">•</span>
+                <span>{{ g.minutes }} min read</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="mt-12 p-6 bg-slate-900/60 border border-white/10 rounded-2xl">
+        <p class="text-sm text-slate-400 leading-relaxed">
+            Prefer raw numbers? The <a href="{% url 'insights' %}" class="text-indigo-400 hover:text-indigo-300 font-semibold">Market Insights</a>
+            page shows live skill demand, salaries by seniority and remote-work share, recalculated from our full
+            dataset throughout the day.
+        </p>
+    </div>
+</div>
+{% endblock %}
