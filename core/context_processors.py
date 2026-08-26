@@ -30,6 +30,10 @@ def adsense_context(request):
     }
 
 
+def analytics_context(request):
+    return {'ga_measurement_id': getattr(django_settings, 'GA_MEASUREMENT_ID', '')}
+
+
 def social_login_status(request):
     google_available = False
     try:

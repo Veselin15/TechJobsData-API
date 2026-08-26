@@ -8,6 +8,16 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client }}"
             crossorigin="anonymous"></script>
     {% endif %}
+    {% if ga_measurement_id %}
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ ga_measurement_id }}');
+    </script>
+    {% endif %}
     <title>{% block title %}TechJobsData — Real-Time Tech Jobs API{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}The #1 API for real-time remote tech job data. Get structured listings from LinkedIn, Glassdoor, and more with a single REST call.{% endblock %}">
     <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">

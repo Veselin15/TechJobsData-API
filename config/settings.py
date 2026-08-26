@@ -109,6 +109,7 @@ TEMPLATES = [
                 'core.context_processors.global_premium_status',
                 'core.context_processors.social_login_status',
                 'core.context_processors.adsense_context',
+                'core.context_processors.analytics_context',
             ],
         },
     },
@@ -274,6 +275,9 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# --- GOOGLE ANALYTICS (GA4) ---
+GA_MEASUREMENT_ID = os.environ.get('GA_MEASUREMENT_ID', 'G-7QLGKYYVQ7')
 
 # --- GOOGLE ADSENSE ---
 ADSENSE_CLIENT_ID = 'ca-pub-1995258824270781'
