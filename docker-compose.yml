@@ -56,10 +56,14 @@ services:
   # 5. The Scheduler
   celery-beat:
     build: .
-    command: celery -A config beat --loglevel=info
+    # Schedule/pid state goes to a named volume, not the bind-mounted repo:
+    # Beat rewrites this file constantly, and a live file inside a git
+    # working tree collides with every `git pull` on the host.
+    command: celery -A config beat --loglevel=info --schedule=/celerybeat/celerybeat-schedule --pidfile=/celerybeat/celerybeat.pid
     restart: always
     volumes:
       - .:/app
+      - celerybeat_data:/celerybeat
     depends_on:
       - redis
     env_file:
@@ -81,6 +85,7 @@ services:
 
 volumes:
   postgres_data:
+  celerybeat_data:
 
 networks:
   default:
