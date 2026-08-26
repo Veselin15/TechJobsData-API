@@ -3,8 +3,11 @@
 #   * Postgres trigger keeping it in sync on every INSERT/UPDATE — no
 #     application code involved, so bulk_update/update_or_create all work
 #   * pg_trgm extension + trigram indexes on title/company for fuzzy search
-# Also syncs accumulated model drift (BigAutoField, db_index flags, index
-# renames) so future makemigrations stay clean.
+# Also renames the quality/posted index to match its current auto-generated
+# name and upgrades the PK to BigAutoField. The db_index flags and the
+# (-posted_at, title) index were already added by
+# 0006_alter_job_company_alter_job_posted_at_and_more (merged in via
+# 0007_merge_20260707_1453) — not repeated here.
 
 import django.contrib.postgres.indexes
 import django.contrib.postgres.search
@@ -58,7 +61,7 @@ DROP INDEX IF EXISTS jobs_job_company_trgm;
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jobs', '0006_job_enrichment_fields'),
+        ('jobs', '0007_merge_20260707_1453'),
     ]
 
     operations = [
@@ -75,27 +78,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='job',
-            name='company',
-            field=models.CharField(db_index=True, max_length=500),
-        ),
-        migrations.AlterField(
-            model_name='job',
             name='id',
             field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
-        ),
-        migrations.AlterField(
-            model_name='job',
-            name='posted_at',
-            field=models.DateField(blank=True, db_index=True, null=True),
-        ),
-        migrations.AlterField(
-            model_name='job',
-            name='source',
-            field=models.CharField(db_index=True, max_length=50),
-        ),
-        migrations.AddIndex(
-            model_name='job',
-            index=models.Index(fields=['-posted_at', 'title'], name='jobs_job_posted__0c9385_idx'),
         ),
         migrations.AddIndex(
             model_name='job',
